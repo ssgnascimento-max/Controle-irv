@@ -31,6 +31,17 @@
   table th{color:#94a3b8;font-weight:600}
   .err{color:#fca5a5}
   details > summary {cursor:pointer}
+
+  /* === Tema Claro (aplicado quando body.theme-light) === */
+  body.theme-light{background:linear-gradient(135deg,#f8fafc 0%,#ffffff 70%); color:#0f172a;}
+  body.theme-light .card{background:#ffffff; border-color:#e5e7eb; box-shadow:0 12px 28px rgba(2,6,23,.08)}
+  body.theme-light .btn-min{color:#334155; border-color:#e5e7eb; background:#ffffff}
+  body.theme-light .tab{background:#ffffff; border-color:#e5e7eb; color:#0f172a}
+  body.theme-light .tab.active{background:#0f172a; border-color:#0f172a; color:#fff}
+  body.theme-light input, body.theme-light select{background:#ffffff; color:#0f172a; border-color:#e5e7eb}
+  body.theme-light table th{color:#475569}
+  body.theme-light .chip{color:#475569; border-color:#e5e7eb}
+
 </style>
 </head>
 <body class="min-h-screen">
@@ -82,6 +93,7 @@
         Importar
         <input type="file" id="backupImport" accept="application/json" class="hidden">
       </label>
+      <button id="btnTema" class="btn btn-min" title="Alternar tema">Tema</button>
       <button id="btnSair" class="btn btn-min hidden">Sair</button>
     </div>
   </header>
@@ -187,6 +199,34 @@
       </table>
     </div>
   </section>
+
+<!-- Edit Modal -->
+<div id="editOverlay" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[60]">
+  <div class="card w-full max-w-2xl p-4">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-lg font-semibold">Editar transação</h3>
+      <button id="editClose" class="btn btn-min">Fechar</button>
+    </div>
+    <form id="editForm" class="grid md:grid-cols-8 gap-3 items-end">
+      <input type="hidden" id="editId">
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="editIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Data</label><input type="date" id="editData" required></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="editTipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
+      <div class="field md:col-span-2">
+        <label class="text-xs" style="color:var(--muted)">Categoria</label>
+        <div class="flex gap-2"><select id="editCategoria" class="flex-1"></select><button type="button" id="editAddCategoria" class="btn btn-min">+ Categoria</button></div>
+      </div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Forma</label><select id="editForma"><option>Dinheiro</option><option>Pix</option></select></div>
+      <div class="field md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="editDescricao" placeholder="Opcional"></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="number" id="editValor" step="0.01" required></div>
+      <div class="md:col-span-8 flex gap-2">
+        <button class="btn btn-primary" type="submit">Salvar alterações</button>
+        <button id="editCancel" class="btn btn-min" type="button">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 </div>
 
 <script>
@@ -200,6 +240,29 @@ const cfg = {
   appId: "1:762509187602:web:8fb033060a454007c616cb",
   measurementId: "G-CHB6CVWZ7E"
 };
+
+
+// ===== Tema (claro/escuro) =====
+const THEME_KEY='irv_theme';
+function applyTheme(t){
+  const b=document.body;
+  if(t==='light'){ b.classList.add('theme-light'); }
+  else { b.classList.remove('theme-light'); }
+  try{ localStorage.setItem(THEME_KEY,t); }catch(_){}
+}
+function initTheme(){
+  try{
+    const saved = localStorage.getItem(THEME_KEY);
+    if(saved){ applyTheme(saved); return; }
+  }catch(_){}
+  // padrão: escuro; se preferir respeitar SO, descomente abaixo:
+  // const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  // applyTheme(prefersLight ? 'light' : 'dark');
+}
+function toggleTheme(){
+  const isLight = document.body.classList.contains('theme-light');
+  applyTheme(isLight ? 'dark':'light');
+}
 
 // ===== Helpers
 const $ = (id)=>document.getElementById(id);
@@ -243,6 +306,7 @@ function initFirebase(){
     $('btnGoogle').onclick = async ()=>{ const provider=new firebase.auth.GoogleAuthProvider(); try{ await auth.signInWithPopup(provider); }catch(e){ try{ await auth.signInWithRedirect(provider);}catch(e2){ msg.textContent=e2.message||'Falha no Google.'; } } };
     $('btnLocal').onclick = ()=>{ localMode=true; $('userEmail').textContent='Modo local'; openApp(); loadLocal(); };
     $('btnSair').onclick = ()=> auth.signOut();
+    const bt=document.getElementById('btnTema'); if(bt) bt.onclick=toggleTheme;
     return true;
   }catch(e){ if(msg) msg.textContent='Falha ao inicializar Firebase.'; if(diag) diag.textContent='Erro: '+(e.message||e); return false; }
 }
@@ -446,19 +510,8 @@ function render(){
           }
         }catch(err){ alert('Falha ao excluir: '+(err.message||err)); }
       }else if(act==='edit'){
-        const novoValor = prompt('Novo valor para "'+(t.descricao||t.categoria)+'":', t.valor);
-        if(novoValor===null) return;
-        const nv = parseFloat(novoValor);
-        if(!(isFinite(nv)&&nv>0)) return alert('Valor inválido.');
-        try{
-          if(localMode || !currentUser){
-            const i = transacoes.findIndex(x=> x.id===t.id);
-            if(i>=0){ transacoes[i].valor = nv; localStorage.setItem('irv_local_tx', JSON.stringify(transacoes)); }
-            render();
-          }else{
-            await txCol().doc(id).set({valor:nv}, {merge:true});
-          }
-        }catch(err){ alert('Falha ao editar: '+(err.message||err)); }
+        // abre modal com todos os campos
+        showEdit(t);
       }
     };
   });
@@ -484,6 +537,83 @@ function drawCharts(e,s,rows){
   g2=new Chart(document.getElementById('graficoPizza'),{type:'doughnut',data:{labels:Object.keys(cat),datasets:[{data:Object.values(cat)}]},options:{responsive:true,maintainAspectRatio:false}});
 }
 
+
+// ====== Edit Modal Logic ======
+const editOverlay = document.getElementById('editOverlay');
+const editForm = document.getElementById('editForm');
+
+function showEdit(tx){
+  // Populate fields
+  document.getElementById('editId').value = tx.id || '';
+  document.getElementById('editIgreja').value = tx.igreja || 'Alagoinhas';
+  document.getElementById('editData').value = tx.data || '';
+  document.getElementById('editTipo').value = tx.tipo || 'entrada';
+  renderEditCategorias();
+  document.getElementById('editCategoria').value = tx.categoria || '';
+  document.getElementById('editForma').value = tx.forma || 'Dinheiro';
+  document.getElementById('editDescricao').value = tx.descricao || '';
+  document.getElementById('editValor').value = Number(tx.valor||0);
+
+  editOverlay.classList.remove('hidden');
+  editOverlay.classList.add('flex');
+}
+
+function hideEdit(){ editOverlay.classList.add('hidden'); editOverlay.classList.remove('flex'); }
+
+function renderEditCategorias(){
+  const t = document.getElementById('editTipo').value;
+  const el = document.getElementById('editCategoria'); el.innerHTML='';
+  (cats[t]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); });
+}
+
+document.getElementById('editTipo').addEventListener('change', ()=>{ renderEditCategorias(); });
+
+document.getElementById('editAddCategoria').onclick = async () => {
+  const t = document.getElementById('editTipo').value;
+  const nome = prompt('Nova categoria de '+(t==='entrada'?'Entrada':'Saída')+':');
+  if(!nome) return;
+  if(!cats[t].includes(nome)) cats[t].push(nome);
+  renderEditCategorias();
+  document.getElementById('editCategoria').value = nome;
+  if(!localMode && currentUser){
+    await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true});
+  }else{
+    localStorage.setItem('irv_local_cats', JSON.stringify(cats));
+  }
+};
+
+document.getElementById('editClose').onclick = hideEdit;
+document.getElementById('editCancel').onclick = hideEdit;
+
+editForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const id = document.getElementById('editId').value;
+  const txUpd = {
+    igreja: document.getElementById('editIgreja').value,
+    data: document.getElementById('editData').value,
+    tipo: document.getElementById('editTipo').value,
+    categoria: document.getElementById('editCategoria').value,
+    forma: document.getElementById('editForma').value,
+    descricao: (document.getElementById('editDescricao').value||'').trim(),
+    valor: parseFloat(document.getElementById('editValor').value||'0')
+  };
+  if(!txUpd.data) return alert('Informe a data.');
+  if(!canAddOn(txUpd.data, txUpd.igreja)) return alert('Lançamentos em meses anteriores são bloqueados. Feche o mês atual para lançar no seguinte.');
+  if(!txUpd.categoria) return alert('Informe a categoria.');
+  if(!(isFinite(txUpd.valor)&&txUpd.valor>0)) return alert('Informe um valor válido (>0).');
+  try{
+    if(localMode || !currentUser){
+      const i = transacoes.findIndex(x=> (x.id||'')===id);
+      if(i>=0){ transacoes[i] = { ...transacoes[i], ...txUpd }; localStorage.setItem('irv_local_tx', JSON.stringify(transacoes)); }
+      hideEdit(); render();
+    }else{
+      if(!id) return alert('ID inválido desta transação.');
+      await txCol().doc(id).set(txUpd, {merge:true});
+      hideEdit();
+    }
+  }catch(err){ alert('Falha ao salvar edição: '+(err.message||err)); }
+});
+
 // ==== Livro Caixa PDF
 $('btnPdf').onclick = ()=>{
   const { jsPDF } = window.jspdf;
@@ -507,11 +637,13 @@ $('btnPdf').onclick = ()=>{
   doc.autoTable({ startY: 70, head: [['Data','Igreja','Tipo','Categoria','Forma','Descrição','Valor']], body: table, styles:{fontSize:9}, headStyles:{fillColor:[17,24,39]} });
 
   let y = doc.lastAutoTable.finalY + 18;
-  doc.setFontSize(12); doc.text('Resumo', 40, y); y+=10; doc.setFontSize(10);
-  doc.text(`Saldo anterior: ${fmtBRL(saldoAnterior)}`, 40, y); y+=14;
-  doc.text(`Entradas: ${fmtBRL(entradas)}`, 40, y); y+=14;
-  doc.text(`Saídas: ${fmtBRL(saidas)}`, 40, y); y+=14;
-  doc.text(`Saldo atual: ${fmtBRL(saldoAtual)}`, 40, y);
+  const pageW = doc.internal.pageSize.getWidth();
+  const rightX = pageW - 220; // bloco à direita
+  doc.setFontSize(12); doc.text('Resumo', rightX, y); y+=10; doc.setFontSize(10);
+  doc.text(`Saldo anterior: ${fmtBRL(saldoAnterior)}`, rightX, y); y+=14;
+  doc.text(`Entradas: ${fmtBRL(entradas)}`, rightX, y); y+=14;
+  doc.text(`Saídas: ${fmtBRL(saidas)}`, rightX, y); y+=14;
+  doc.text(`Saldo atual: ${fmtBRL(saldoAtual)}`, rightX, y);
 
   doc.save('Livro_Caixa.pdf');
 };
@@ -583,6 +715,7 @@ function loadLocal(){
 
 // Start
 (function(){
+  initTheme();
   initFirebase();
   const now = new Date().toISOString().slice(0,7);
   $('competencia').value = now;
