@@ -265,6 +265,28 @@ function parseValorBR(v){
   return parseFloat(s);
 }
 
+
+// Máscara de moeda pt-BR ao digitar
+function maskCurrencyInput(el){
+  if(!el) return;
+  const format = (raw) => {
+    if(raw==='' || raw==null) return '';
+    const n = Number(raw)/100;
+    return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  };
+  const handle = ()=>{
+    // mantém somente dígitos e formata como centavos
+    let s = (el.value||'').toString().replace(/\D+/g,'');
+    if(s===''){ el.value=''; return; }
+    el.value = format(s);
+  };
+  el.addEventListener('input', handle);
+  el.addEventListener('blur', ()=>{
+    const n = parseValorBR(el.value);
+    if(!isNaN(n)) el.value = n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  });
+}
+
 // ===== Estado
 let auth=null, db=null, currentUser=null, unsubTx=null, localMode=false;
 let transacoes=[];
@@ -317,7 +339,9 @@ async function loadUserData(){
   try{ const snap = await db.collection('irv_users').doc(currentUser.uid).collection('closures').get();
     fechados={}; snap.forEach(d=> fechados[d.id]=!!d.data().closed);
   }catch(_){}
-  renderCategorias(); updateFechStatus();
+  renderCategorias();
+  // aplica máscara nos campos de valor
+  maskCurrencyInput(document.getElementById('valor')); updateFechStatus();
 }
 
 // ===== Categorias UI
@@ -531,6 +555,7 @@ function showEdit(tx){
   document.getElementById('editForma').value = tx.forma || 'Dinheiro';
   document.getElementById('editDescricao').value = tx.descricao || '';
   document.getElementById('editValor').value = (Number(tx.valor||0)).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  maskCurrencyInput(document.getElementById('editValor'));
   editOverlay.classList.remove('hidden'); editOverlay.classList.add('flex');
 }
 function hideEdit(){ editOverlay.classList.add('hidden'); editOverlay.classList.remove('flex'); }
