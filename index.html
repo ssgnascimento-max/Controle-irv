@@ -32,7 +32,7 @@
   .err{color:#fca5a5}
   details > summary {cursor:pointer}
 
-  /* === Tema Claro (aplicado quando body.theme-light) === */
+  /* Tema claro */
   body.theme-light{background:linear-gradient(135deg,#f8fafc 0%,#ffffff 70%); color:#0f172a;}
   body.theme-light .card{background:#ffffff; border-color:#e5e7eb; box-shadow:0 12px 28px rgba(2,6,23,.08)}
   body.theme-light .btn-min{color:#334155; border-color:#e5e7eb; background:#ffffff}
@@ -42,6 +42,12 @@
   body.theme-light table th{color:#475569}
   body.theme-light .chip{color:#475569; border-color:#e5e7eb}
 
+  /* Linhas suaves + negrito */
+  tbody tr.soft-row{background:rgba(255,255,255,.06); transition:background .15s}
+  tbody tr.soft-row:hover{background:rgba(255,255,255,.1)}
+  body.theme-light tbody tr.soft-row{background:#f8fafc}
+  body.theme-light tbody tr.soft-row:hover{background:#eef2f7}
+  .td-strong{font-weight:700}
 </style>
 </head>
 <body class="min-h-screen">
@@ -88,12 +94,12 @@
     </div>
     <div class="flex items-center gap-2">
       <span id="userEmail" class="chip">offline</span>
+      <button id="btnTema" class="btn btn-min" title="Alternar tema">Tema</button>
       <button id="btnBackupExport" class="btn btn-min" title="Baixar backup JSON">Backup</button>
       <label class="btn btn-min cursor-pointer">
         Importar
         <input type="file" id="backupImport" accept="application/json" class="hidden">
       </label>
-      <button id="btnTema" class="btn btn-min" title="Alternar tema">Tema</button>
       <button id="btnSair" class="btn btn-min hidden">Sair</button>
     </div>
   </header>
@@ -147,7 +153,7 @@
         <div class="field"><label class="text-xs" style="color:var(--muted)">Fim</label><input type="date" id="pdfFim"></div>
         <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="pdfIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
       </div>
-      <div class="text-xs mt-2" style="color:var(--muted)">O PDF inclui resumo: <em>Saldo anterior, Entradas, Saídas e Saldo atual</em>.</div>
+      <div class="text-xs mt-2" style="color:var(--muted)">O PDF inclui resumo: <em>Saldo anterior, Entradas, Saídas e Saldo atual</em> (lado direito).</div>
     </div>
   </section>
 
@@ -168,7 +174,7 @@
       </div>
       <div class="field"><label class="text-xs" style="color:var(--muted)">Forma</label><select id="forma"><option>Dinheiro</option><option>Pix</option></select></div>
       <div class="field md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="descricao" placeholder="Opcional"></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="number" id="valor" step="0.01" required></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="valor" step="0.01" required placeholder="Ex.: 1.234,56"></div>
       <div class="md:col-span-8 flex gap-2"><button class="btn btn-primary" type="submit">Adicionar</button><button class="btn btn-min" type="button" id="limparForm">Limpar</button></div>
     </form>
   </section>
@@ -199,6 +205,7 @@
       </table>
     </div>
   </section>
+</div>
 
 <!-- Edit Modal -->
 <div id="editOverlay" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[60]">
@@ -218,15 +225,13 @@
       </div>
       <div class="field"><label class="text-xs" style="color:var(--muted)">Forma</label><select id="editForma"><option>Dinheiro</option><option>Pix</option></select></div>
       <div class="field md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="editDescricao" placeholder="Opcional"></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="number" id="editValor" step="0.01" required></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="editValor" step="0.01" required placeholder="Ex.: 1.234,56"></div>
       <div class="md:col-span-8 flex gap-2">
         <button class="btn btn-primary" type="submit">Salvar alterações</button>
         <button id="editCancel" class="btn btn-min" type="button">Cancelar</button>
       </div>
     </form>
   </div>
-</div>
-
 </div>
 
 <script>
@@ -241,34 +246,24 @@ const cfg = {
   measurementId: "G-CHB6CVWZ7E"
 };
 
-
-// ===== Tema (claro/escuro) =====
+// ===== Tema
 const THEME_KEY='irv_theme';
-function applyTheme(t){
-  const b=document.body;
-  if(t==='light'){ b.classList.add('theme-light'); }
-  else { b.classList.remove('theme-light'); }
-  try{ localStorage.setItem(THEME_KEY,t); }catch(_){}
-}
-function initTheme(){
-  try{
-    const saved = localStorage.getItem(THEME_KEY);
-    if(saved){ applyTheme(saved); return; }
-  }catch(_){}
-  // padrão: escuro; se preferir respeitar SO, descomente abaixo:
-  // const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-  // applyTheme(prefersLight ? 'light' : 'dark');
-}
-function toggleTheme(){
-  const isLight = document.body.classList.contains('theme-light');
-  applyTheme(isLight ? 'dark':'light');
-}
+function applyTheme(t){ const b=document.body; if(t==='light'){ b.classList.add('theme-light'); } else { b.classList.remove('theme-light'); } try{ localStorage.setItem(THEME_KEY,t); }catch(_){}};
+function initTheme(){ try{ const saved=localStorage.getItem(THEME_KEY); if(saved){ applyTheme(saved); } }catch(_){} }
+function toggleTheme(){ const isLight=document.body.classList.contains('theme-light'); applyTheme(isLight?'dark':'light'); }
 
 // ===== Helpers
 const $ = (id)=>document.getElementById(id);
 const fmtBRL = (n)=> 'R$ '+Number(n||0).toFixed(2).replace('.',',');
 const toBR = (d)=>{ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; };
 const ym = (d)=> d ? d.slice(0,7) : '';
+// Normaliza valores (suporta 1.234,56 e 1234.56)
+function parseValorBR(v){
+  if(v==null) return NaN;
+  let s = String(v).trim();
+  if(s.indexOf(',')>=0){ s = s.replace(/\\./g,'').replace(',', '.'); }
+  return parseFloat(s);
+}
 
 // ===== Estado
 let auth=null, db=null, currentUser=null, unsubTx=null, localMode=false;
@@ -332,26 +327,12 @@ function renderCategorias(){
 }
 $('tipo').addEventListener('change', ()=>{
   renderCategorias();
-  // sincroniza abas quando o select muda manualmente
-  const v = $('tipo').value;
-  document.getElementById('tabEntrada').classList.toggle('active', v==='entrada');
-  document.getElementById('tabSaida').classList.toggle('active', v==='saida');
+  document.getElementById('tabEntrada').classList.toggle('active', $('tipo').value==='entrada');
+  document.getElementById('tabSaida').classList.toggle('active', $('tipo').value==='saida');
 });
 
-// controla as abas Entrada/Saída para alterar o campo "tipo" e recarregar categorias
-document.getElementById('tabEntrada').addEventListener('click', ()=>{
-  $('tipo').value = 'entrada';
-  document.getElementById('tabEntrada').classList.add('active');
-  document.getElementById('tabSaida').classList.remove('active');
-  renderCategorias();
-});
-
-document.getElementById('tabSaida').addEventListener('click', ()=>{
-  $('tipo').value = 'saida';
-  document.getElementById('tabSaida').classList.add('active');
-  document.getElementById('tabEntrada').classList.remove('active');
-  renderCategorias();
-});
+document.getElementById('tabEntrada').addEventListener('click', ()=>{ $('tipo').value='entrada'; document.getElementById('tabEntrada').classList.add('active'); document.getElementById('tabSaida').classList.remove('active'); renderCategorias(); });
+document.getElementById('tabSaida').addEventListener('click', ()=>{ $('tipo').value='saida'; document.getElementById('tabSaida').classList.add('active'); document.getElementById('tabEntrada').classList.remove('active'); renderCategorias(); });
 
 $('btnAddCategoria').onclick = async ()=>{
   const tipo=$('tipo').value;
@@ -439,7 +420,7 @@ document.getElementById('form').addEventListener('submit', async (e)=>{
     categoria: $('categoria').value,
     forma: $('forma').value,
     descricao: ($('descricao').value||'').trim(),
-    valor: parseFloat($('valor').value||'0')
+    valor: parseValorBR($('valor').value||'0')
   };
   if(!tx.data) return alert('Informe a data.');
   if(!canAddOn(tx.data, tx.igreja)) return alert('Lançamentos em meses anteriores são bloqueados.\nPara lançar no próximo mês, feche o mês atual.');
@@ -478,15 +459,15 @@ function render(){
 
   rows.forEach((t,idx)=>{
     if(t.tipo==='entrada') totE += (+t.valor||0); else totS += (+t.valor||0);
-    const tr=document.createElement('tr');
+    const tr=document.createElement('tr'); tr.className='soft-row';
     tr.innerHTML = `
       <td class="p-2">${toBR(t.data)}</td>
       <td class="p-2">${t.igreja||''}</td>
-      <td class="p-2">${t.tipo==='entrada'?'Entrada':'Saída'}</td>
-      <td class="p-2">${t.categoria||''}</td>
+      <td class="p-2 td-strong">${t.tipo==='entrada'?'Entrada':'Saída'}</td>
+      <td class="p-2 td-strong">${t.categoria||''}</td>
       <td class="p-2">${t.forma||''}</td>
       <td class="p-2">${t.descricao||''}</td>
-      <td class="p-2">${fmtBRL(t.valor)}</td>
+      <td class="p-2 td-strong">${fmtBRL(t.valor)}</td>
       <td class="p-2 text-right flex justify-end gap-2">
         <button class="btn btn-green text-xs" data-act="edit" data-id="${t.id||''}" data-idx="${idx}">Editar</button>
         <button class="btn btn-red text-xs" data-act="del"  data-id="${t.id||''}" data-idx="${idx}">Excluir</button>
@@ -510,7 +491,6 @@ function render(){
           }
         }catch(err){ alert('Falha ao excluir: '+(err.message||err)); }
       }else if(act==='edit'){
-        // abre modal com todos os campos
         showEdit(t);
       }
     };
@@ -537,13 +517,11 @@ function drawCharts(e,s,rows){
   g2=new Chart(document.getElementById('graficoPizza'),{type:'doughnut',data:{labels:Object.keys(cat),datasets:[{data:Object.values(cat)}]},options:{responsive:true,maintainAspectRatio:false}});
 }
 
-
-// ====== Edit Modal Logic ======
+// ===== Edit Modal Logic
 const editOverlay = document.getElementById('editOverlay');
 const editForm = document.getElementById('editForm');
 
 function showEdit(tx){
-  // Populate fields
   document.getElementById('editId').value = tx.id || '';
   document.getElementById('editIgreja').value = tx.igreja || 'Alagoinhas';
   document.getElementById('editData').value = tx.data || '';
@@ -552,39 +530,23 @@ function showEdit(tx){
   document.getElementById('editCategoria').value = tx.categoria || '';
   document.getElementById('editForma').value = tx.forma || 'Dinheiro';
   document.getElementById('editDescricao').value = tx.descricao || '';
-  document.getElementById('editValor').value = Number(tx.valor||0);
-
-  editOverlay.classList.remove('hidden');
-  editOverlay.classList.add('flex');
+  document.getElementById('editValor').value = (Number(tx.valor||0)).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  editOverlay.classList.remove('hidden'); editOverlay.classList.add('flex');
 }
-
 function hideEdit(){ editOverlay.classList.add('hidden'); editOverlay.classList.remove('flex'); }
-
-function renderEditCategorias(){
-  const t = document.getElementById('editTipo').value;
-  const el = document.getElementById('editCategoria'); el.innerHTML='';
-  (cats[t]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); });
-}
-
+function renderEditCategorias(){ const t=document.getElementById('editTipo').value; const el=document.getElementById('editCategoria'); el.innerHTML=''; (cats[t]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); }); }
 document.getElementById('editTipo').addEventListener('change', ()=>{ renderEditCategorias(); });
-
 document.getElementById('editAddCategoria').onclick = async () => {
   const t = document.getElementById('editTipo').value;
   const nome = prompt('Nova categoria de '+(t==='entrada'?'Entrada':'Saída')+':');
   if(!nome) return;
   if(!cats[t].includes(nome)) cats[t].push(nome);
-  renderEditCategorias();
-  document.getElementById('editCategoria').value = nome;
-  if(!localMode && currentUser){
-    await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true});
-  }else{
-    localStorage.setItem('irv_local_cats', JSON.stringify(cats));
-  }
+  renderEditCategorias(); document.getElementById('editCategoria').value = nome;
+  if(!localMode && currentUser){ await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true}); }
+  else{ localStorage.setItem('irv_local_cats', JSON.stringify(cats)); }
 };
-
 document.getElementById('editClose').onclick = hideEdit;
 document.getElementById('editCancel').onclick = hideEdit;
-
 editForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
   const id = document.getElementById('editId').value;
@@ -595,7 +557,7 @@ editForm.addEventListener('submit', async (e)=>{
     categoria: document.getElementById('editCategoria').value,
     forma: document.getElementById('editForma').value,
     descricao: (document.getElementById('editDescricao').value||'').trim(),
-    valor: parseFloat(document.getElementById('editValor').value||'0')
+    valor: parseValorBR(document.getElementById('editValor').value||'0')
   };
   if(!txUpd.data) return alert('Informe a data.');
   if(!canAddOn(txUpd.data, txUpd.igreja)) return alert('Lançamentos em meses anteriores são bloqueados. Feche o mês atual para lançar no seguinte.');
@@ -614,8 +576,8 @@ editForm.addEventListener('submit', async (e)=>{
   }catch(err){ alert('Falha ao salvar edição: '+(err.message||err)); }
 });
 
-// ==== Livro Caixa PDF
-$('btnPdf').onclick = ()=>{
+// ==== Livro Caixa PDF (resumo à direita)
+document.getElementById('btnPdf').onclick = ()=>{
   const { jsPDF } = window.jspdf;
   const inicio=$('pdfInicio').value, fim=$('pdfFim').value, ig=$('pdfIgreja').value;
   const rows = transacoes
@@ -627,7 +589,7 @@ $('btnPdf').onclick = ()=>{
     if(t.tipo==='entrada') entradas+=(+t.valor||0); else saidas+=(+t.valor||0);
     return [toBR(t.data), t.igreja, (t.tipo==='entrada'?'Entrada':'Saída'), t.categoria, t.forma||'', t.descricao||'', fmtBRL(t.valor)];
   });
-  const saldoAnterior = 0; // ajuste se precisar considerar períodos anteriores
+  const saldoAnterior = 0;
   const saldoAtual = saldoAnterior + entradas - saidas;
 
   const doc = new jsPDF({unit:'pt'});
@@ -638,7 +600,7 @@ $('btnPdf').onclick = ()=>{
 
   let y = doc.lastAutoTable.finalY + 18;
   const pageW = doc.internal.pageSize.getWidth();
-  const rightX = pageW - 220; // bloco à direita
+  const rightX = pageW - 220;
   doc.setFontSize(12); doc.text('Resumo', rightX, y); y+=10; doc.setFontSize(10);
   doc.text(`Saldo anterior: ${fmtBRL(saldoAnterior)}`, rightX, y); y+=14;
   doc.text(`Entradas: ${fmtBRL(entradas)}`, rightX, y); y+=14;
@@ -649,12 +611,8 @@ $('btnPdf').onclick = ()=>{
 };
 
 // ==== Backup JSON (export/import)
-$('btnBackupExport').onclick = ()=>{
-  const data = {
-    categories: cats,
-    closures: fechados,
-    transactions: transacoes
-  };
+document.getElementById('btnBackupExport').onclick = ()=>{
+  const data = { categories: cats, closures: fechados, transactions: transacoes };
   const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -663,7 +621,7 @@ $('btnBackupExport').onclick = ()=>{
   URL.revokeObjectURL(a.href);
 };
 
-$('backupImport').addEventListener('change', async (ev)=>{
+document.getElementById('backupImport').addEventListener('change', async (ev)=>{
   const file = ev.target.files[0]; if(!file) return;
   try{
     const txt = await file.text();
@@ -678,7 +636,6 @@ $('backupImport').addEventListener('change', async (ev)=>{
       render();
       alert('Backup restaurado no modo local.');
     }else{
-      // grava no Firestore
       const uid=currentUser.uid;
       const writes=[];
       if(data.categories){
@@ -691,7 +648,7 @@ $('backupImport').addEventListener('change', async (ev)=>{
       }
       if(Array.isArray(data.transactions)){
         for(const t of data.transactions){
-          const t2 = {...t}; delete t2.id; // novo id
+          const t2 = {...t}; delete t2.id;
           writes.push(db.collection('irv_users').doc(uid).collection('transactions').add(t2));
         }
       }
@@ -705,28 +662,18 @@ $('backupImport').addEventListener('change', async (ev)=>{
   }
 });
 
-// ==== Local storage helpers
-function loadLocal(){
-  try{ const lc=localStorage.getItem('irv_local_cats'); if(lc) cats=JSON.parse(lc); }catch(_){}
-  try{ const lc2=localStorage.getItem('irv_local_closures'); if(lc2) fechados=JSON.parse(lc2); }catch(_){}
-  try{ transacoes = JSON.parse(localStorage.getItem('irv_local_tx')) || []; }catch(_){ transacoes=[]; }
-  render();
-}
-
 // Start
 (function(){
   initTheme();
   initFirebase();
   const now = new Date().toISOString().slice(0,7);
   $('competencia').value = now;
-  // sincronia inicial das abas com o select tipo
-  (function(){
-    const v = $('tipo').value;
-    document.getElementById('tabEntrada').classList.toggle('active', v==='entrada');
-    document.getElementById('tabSaida').classList.toggle('active', v==='saida');
-    renderCategorias();
-  })();
   $('fMes').value = now;
+  // sincronia inicial abas
+  const v = $('tipo').value;
+  document.getElementById('tabEntrada').classList.toggle('active', v==='entrada');
+  document.getElementById('tabSaida').classList.toggle('active', v==='saida');
+  renderCategorias();
 })();
 </script>
 </body>
