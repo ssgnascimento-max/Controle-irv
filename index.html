@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controle Financeiro IRV</title>
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 10px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <!-- Tela de autenticação -->
+  <div id="authGate">
+    <h2>Login - Controle Financeiro IRV</h2>
+    <form id="authForm">
+      <input id="authEmail" type="email" placeholder="Email" required><br>
+      <input id="authPass" type="password" placeholder="Senha" required><br>
+      <button type="submit">Entrar</button>
+      <button id="btnCriar" type="button">Criar conta</button>
+      <button id="btnGoogle" type="button">Login com Google</button>
+      <button id="btnLocal" type="button">Modo Local</button>
+    </form>
+    <p id="authMsg"></p>
+  </div>
+
+  <!-- Aplicação completa -->
+  <div id="appRoot" class="hidden">
+    <header>
+      <h1>Controle Financeiro IRV</h1>
+      <button id="btnSair">Sair</button>
+    </header>
+
+    <section id="dashboards">
+      <canvas id="graficoBarras"></canvas>
+      <canvas id="graficoPizza"></canvas>
+    </section>
+
+    <section>
+      <form id="form">
+        <label>Igreja</label>
+        <select id="igreja" required>
+          <option value="Alagoinhas">Alagoinhas</option>
+          <option value="Entre Rios">Entre Rios</option>
+        </select>
+        <label>Data</label>
+        <input type="date" id="data" required>
+        <label>Tipo</label>
+        <select id="tipo">
+          <option value="entrada">Entrada</option>
+          <option value="saida">Saída</option>
+        </select>
+        <label>Categoria</label>
+        <input type="text" id="categoria" required>
+        <label>Descrição</label>
+        <input type="text" id="descricao">
+        <label>Valor</label>
+        <input type="number" id="valor" step="0.01" required>
+        <button type="submit">Adicionar</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Transações</h2>
+      <table border="1">
+        <thead>
+          <tr>
+            <th>Data</th><th>Igreja</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Valor</th>
+          </tr>
+        </thead>
+        <tbody id="lista"></tbody>
+      </table>
+    </section>
+  </div>
+
+<script>
+// Configuração Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAwcOnl2340CVBpW40ZRMlWwh8Gy0p8UJ8",
+  authDomain: "controle-finaceiro-2e6c7.firebaseapp.com",
+  projectId: "controle-finaceiro-2e6c7",
+  storageBucket: "controle-finaceiro-2e6c7.appspot.com",
+  messagingSenderId: "63325455070",
+  appId: "1:63325455070:web:ca2fb5b1e28fc4b8cdb84f"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+const authGate = document.getElementById("authGate");
+const appRoot = document.getElementById("appRoot");
+const msgBox = document.getElementById("authMsg");
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    authGate.classList.add("hidden");
+    appRoot.classList.remove("hidden");
+  } else {
+    authGate.classList.remove("hidden");
+    appRoot.classList.add("hidden");
+  }
+});
+
+document.getElementById("authForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = document.getElementById("authEmail").value;
+  const pass = document.getElementById("authPass").value;
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch (err) {
+    msgBox.textContent = err.message;
+  }
+});
+
+document.getElementById("btnCriar").addEventListener("click", async () => {
+  const email = document.getElementById("authEmail").value;
+  const pass = document.getElementById("authPass").value;
+  try {
+    await auth.createUserWithEmailAndPassword(email, pass);
+  } catch (err) {
+    msgBox.textContent = err.message;
+  }
+});
+
+document.getElementById("btnGoogle").addEventListener("click", async () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    msgBox.textContent = err.message;
+  }
+});
+
+document.getElementById("btnLocal").addEventListener("click", () => {
+  authGate.classList.add("hidden");
+  appRoot.classList.remove("hidden");
+});
+
+document.getElementById("btnSair").addEventListener("click", () => {
+  auth.signOut();
+});
+
+// -------- Aplicação básica --------
+let transacoes = [];
+document.getElementById("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const t = {
+    igreja: document.getElementById("igreja").value,
+    data: document.getElementById("data").value,
+    tipo: document.getElementById("tipo").value,
+    categoria: document.getElementById("categoria").value,
+    descricao: document.getElementById("descricao").value,
+    valor: parseFloat(document.getElementById("valor").value)
+  };
+  transacoes.push(t);
+  renderLista();
+  e.target.reset();
+});
+
+function renderLista() {
+  const tbody = document.getElementById("lista");
+  tbody.innerHTML = "";
+  transacoes.forEach(t => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${t.data}</td><td>${t.igreja}</td><td>${t.tipo}</td><td>${t.categoria}</td><td>${t.descricao}</td><td>R$ ${t.valor.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+</script>
+</body>
+</html>
