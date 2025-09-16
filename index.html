@@ -174,7 +174,7 @@
       </div>
       <div class="field"><label class="text-xs" style="color:var(--muted)">Forma</label><select id="forma"><option>Dinheiro</option><option>Pix</option></select></div>
       <div class="field md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="descricao" placeholder="Opcional"></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="valor" step="0.01" required placeholder="Ex.: 1.234,56"></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="valor" step="0.01" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
       <div class="md:col-span-8 flex gap-2"><button class="btn btn-primary" type="submit">Adicionar</button><button class="btn btn-min" type="button" id="limparForm">Limpar</button></div>
     </form>
   </section>
@@ -225,7 +225,7 @@
       </div>
       <div class="field"><label class="text-xs" style="color:var(--muted)">Forma</label><select id="editForma"><option>Dinheiro</option><option>Pix</option></select></div>
       <div class="field md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="editDescricao" placeholder="Opcional"></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="editValor" step="0.01" required placeholder="Ex.: 1.234,56"></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="editValor" step="0.01" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
       <div class="md:col-span-8 flex gap-2">
         <button class="btn btn-primary" type="submit">Salvar alterações</button>
         <button id="editCancel" class="btn btn-min" type="button">Cancelar</button>
@@ -257,11 +257,19 @@ const $ = (id)=>document.getElementById(id);
 const fmtBRL = (n)=> 'R$ '+Number(n||0).toFixed(2).replace('.',',');
 const toBR = (d)=>{ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; };
 const ym = (d)=> d ? d.slice(0,7) : '';
-// Normaliza valores (suporta 1.234,56 e 1234.56)
+
+// Normaliza valores (aceita 1.234,56 | 1,234.56 | 1234,56 | 1234.56 | "R$ 1.234,56")
 function parseValorBR(v){
   if(v==null) return NaN;
   let s = String(v).trim();
-  if(s.indexOf(',')>=0){ s = s.replace(/\\./g,'').replace(',', '.'); }
+  // remove tudo que não for dígito, vírgula, ponto ou sinal
+  s = s.replace(/[^\d,.-]/g,'');
+  // se houver mais de uma vírgula, mantém só a última como decimal
+  s = s.replace(/\.(?=\d{3}(\D|$))/g, ''); // remove pontos de milhar comuns
+  s = s.replace(/,(?=.*,)/g,'');             // remove todas as vírgulas exceto a última
+  // troca vírgula decimal por ponto
+  s = s.replace(',', '.');
+  // trata casos de apenas dígitos: "123" -> 123
   return parseFloat(s);
 }
 
