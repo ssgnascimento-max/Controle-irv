@@ -266,7 +266,28 @@ function renderCategorias(){
   const tipo = $('tipo').value; const el=$('categoria'); el.innerHTML='';
   (cats[tipo]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); });
 }
-$('tipo').addEventListener('change', renderCategorias);
+$('tipo').addEventListener('change', ()=>{
+  renderCategorias();
+  // sincroniza abas quando o select muda manualmente
+  const v = $('tipo').value;
+  document.getElementById('tabEntrada').classList.toggle('active', v==='entrada');
+  document.getElementById('tabSaida').classList.toggle('active', v==='saida');
+});
+
+// controla as abas Entrada/Saída para alterar o campo "tipo" e recarregar categorias
+document.getElementById('tabEntrada').addEventListener('click', ()=>{
+  $('tipo').value = 'entrada';
+  document.getElementById('tabEntrada').classList.add('active');
+  document.getElementById('tabSaida').classList.remove('active');
+  renderCategorias();
+});
+
+document.getElementById('tabSaida').addEventListener('click', ()=>{
+  $('tipo').value = 'saida';
+  document.getElementById('tabSaida').classList.add('active');
+  document.getElementById('tabEntrada').classList.remove('active');
+  renderCategorias();
+});
 
 $('btnAddCategoria').onclick = async ()=>{
   const tipo=$('tipo').value;
@@ -565,6 +586,13 @@ function loadLocal(){
   initFirebase();
   const now = new Date().toISOString().slice(0,7);
   $('competencia').value = now;
+  // sincronia inicial das abas com o select tipo
+  (function(){
+    const v = $('tipo').value;
+    document.getElementById('tabEntrada').classList.toggle('active', v==='entrada');
+    document.getElementById('tabSaida').classList.toggle('active', v==='saida');
+    renderCategorias();
+  })();
   $('fMes').value = now;
 })();
 </script>
