@@ -17,10 +17,12 @@
   .tab{flex:1;padding:.75rem;border-bottom:2px solid transparent;text-align:center;font-weight:700}
   .tab.active{border-color:#111827;color:#111827}
   .hint{font-size:.8rem;color:#64748b}
+  .badge{display:inline-block;padding:.1rem .5rem;border-radius:999px;border:1px solid #e5e7eb;font-size:.75rem}
 </style>
 <!-- Firebase compat SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body class="min-h-screen">
 
@@ -69,41 +71,341 @@
     </p>
   </div>
 </div>
-<!-- APP raiz mínima -->
-<div id="appRoot" class="max-w-5xl mx-auto p-4 hidden">
-  <h1 class="text-xl font-bold mb-4">✅ Logado! Aqui ficará a aplicação completa</h1>
+
+<!-- APP -->
+<div id="appRoot" class="max-w-6xl mx-auto p-4 hidden">
+  <header class="mb-4 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-white">Controle Financeiro IRV</h1>
+      <p class="hint text-slate-300">Dados salvos no Firestore por usuário</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="userEmail" class="badge bg-white/70">offline</span>
+      <button id="btnSair" class="btn btn-min hidden">Sair</button>
+    </div>
+  </header>
+
+  <!-- Dashboards -->
+  <section class="grid md:grid-cols-2 gap-4 mb-4">
+    <div class="login-card p-3">
+      <h3 class="font-medium mb-2">Entradas x Saídas</h3>
+      <div class="h-[180px]"><canvas id="graficoBarras"></canvas></div>
+    </div>
+    <div class="login-card p-3">
+      <h3 class="font-medium mb-2">Distribuição por Categoria</h3>
+      <div class="h-[180px]"><canvas id="graficoPizza"></canvas></div>
+    </div>
+  </section>
+
+  <!-- Formulário -->
+  <section class="login-card p-3 mb-4">
+    <form id="form" class="grid md:grid-cols-6 gap-3 items-end">
+      <div>
+        <label class="text-xs text-slate-500">Igreja</label>
+        <select id="igreja" class="p-2 h-10 text-sm border rounded-xl w-full">
+          <option>Alagoinhas</option><option>Entre Rios</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-slate-500">Data</label>
+        <input type="date" id="data" class="p-2 h-10 text-sm border rounded-xl w-full" required>
+      </div>
+      <div>
+        <label class="text-xs text-slate-500">Tipo</label>
+        <select id="tipo" class="p-2 h-10 text-sm border rounded-xl w-full">
+          <option value="entrada">Entrada</option><option value="saida">Saída</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-slate-500">Categoria</label>
+        <input type="text" id="categoria" class="p-2 h-10 text-sm border rounded-xl w-full" placeholder="Ex.: Dízimo" required>
+      </div>
+      <div class="md:col-span-2">
+        <label class="text-xs text-slate-500">Descrição</label>
+        <input type="text" id="descricao" class="p-2 h-10 text-sm border rounded-xl w-full" placeholder="Opcional">
+      </div>
+      <div>
+        <label class="text-xs text-slate-500">Valor</label>
+        <input type="number" id="valor" step="0.01" class="p-2 h-10 text-sm border rounded-xl w-full" required>
+      </div>
+      <div class="md:col-span-6 flex gap-2">
+        <button class="btn btn-primary" type="submit">Adicionar</button>
+        <button class="btn btn-min" type="button" id="limparForm">Limpar</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Lista -->
+  <section class="login-card p-3">
+    <h2 class="font-medium mb-2">Transações</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="text-xs uppercase tracking-wide text-slate-500 border-b">
+            <th class="p-2">Data</th><th class="p-2">Igreja</th><th class="p-2">Tipo</th>
+            <th class="p-2">Categoria</th><th class="p-2">Descrição</th><th class="p-2">Valor</th><th class="p-2 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="lista" class="text-sm"></tbody>
+      </table>
+    </div>
+  </section>
 </div>
 
 <script>
-// Firebase config
+// Firebase config (novo projeto)
 const cfg = {
-  apiKey: "AIzaSyAwcOnl2340CVBpW40ZRMlWwh8Gy0p8UJ8",
-  authDomain: "controle-finaceiro-2e6c7.firebaseapp.com",
-  projectId: "controle-finaceiro-2e6c7",
-  storageBucket: "controle-finaceiro-2e6c7.appspot.com",
-  messagingSenderId: "63325455070",
-  appId: "1:63325455070:web:ca2fb5b1e28fc4b8cdb84f"
+  apiKey: "AIzaSyBanW9qGTl2st7HdM-kkg-WClgY0gEE7co",
+  authDomain: "controle-fin-23a33.firebaseapp.com",
+  projectId: "controle-fin-23a33",
+  storageBucket: "controle-fin-23a33.appspot.com",
+  messagingSenderId: "762509187602",
+  appId: "1:762509187602:web:8fb033060a454007c616cb",
+  measurementId: "G-CHB6CVWZ7E"
 };
-const $=id=>document.getElementById(id);
-const gate=$('authGate'), app=$('appRoot'), msg=$('authMsg'), diag=$('diagBox');
+
+const $ = (id)=>document.getElementById(id);
+const gate = $('authGate'), app = $('appRoot'), msg=$('authMsg'), diag=$('diagBox');
 const tabLogin=$('tabLogin'), tabSignup=$('tabSignup'), pass2=$('authPass2'), submitAuth=$('submitAuth'), signupExtras=$('signupExtras');
-let mode='login';
-function setMode(m){mode=m;if(m==='login'){tabLogin.classList.add('active');tabSignup.classList.remove('active');signupExtras.classList.add('hidden');submitAuth.textContent='Entrar';}else{tabSignup.classList.add('active');tabLogin.classList.remove('active');signupExtras.classList.remove('hidden');submitAuth.textContent='Criar conta';}msg.textContent='';}
-tabLogin.onclick=()=>setMode('login');tabSignup.onclick=()=>setMode('signup');
-let auth=null;
-function openApp(){gate.classList.add('hidden');app.classList.remove('hidden');}
-function initFirebase(){
-  try{firebase.initializeApp(cfg);auth=firebase.auth();
-    auth.onAuthStateChanged(user=>{if(user){openApp();}else{app.classList.add('hidden');gate.classList.remove('hidden');}});
-    $('authForm').onsubmit=async e=>{e.preventDefault();const email=$('authEmail').value.trim(),pass=$('authPass').value;
-      try{if(mode==='login'){await auth.signInWithEmailAndPassword(email,pass);}else{const p2=$('authPass2').value.trim();if(pass.length<6)return msg.textContent='Senha fraca (mín. 6).';if(pass!==p2)return msg.textContent='As senhas não conferem.';await auth.createUserWithEmailAndPassword(email,pass);}}
-      catch(err){const map={"auth/operation-not-allowed":"Ative Email/Password no Firebase.","auth/invalid-email":"E-mail inválido.","auth/email-already-in-use":"E-mail já cadastrado.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Usuário não encontrado."};msg.textContent=map[err.code]||(err.message||'Erro');}};
-    $('btnGoogle').onclick=async()=>{const prov=new firebase.auth.GoogleAuthProvider();try{await auth.signInWithPopup(prov);}catch(e){try{await auth.signInWithRedirect(prov);}catch(e2){msg.textContent=e2.message||'Falha no Google.';}}};
-    $('btnLocal').onclick=()=>openApp();
-    return true;
-  }catch(e){msg.textContent='Falha Firebase';diag.textContent='Erro: '+(e.message||e);return false;}
+let mode = 'login';
+
+function setMode(m){
+  mode=m;
+  if(m==='login'){ tabLogin.classList.add('active'); tabSignup.classList.remove('active'); signupExtras.classList.add('hidden'); submitAuth.textContent='Entrar'; }
+  else { tabSignup.classList.add('active'); tabLogin.classList.remove('active'); signupExtras.classList.remove('hidden'); submitAuth.textContent='Criar conta'; }
+  msg.textContent='';
 }
-initFirebase();
+tabLogin.onclick=()=>setMode('login'); tabSignup.onclick=()=>setMode('signup');
+
+let auth=null, db=null, unsubTx=null, currentUser=null, localMode=false;
+
+// App state
+let transacoes = []; // também usado no modo local
+
+function openApp(email){
+  gate.classList.add('hidden');
+  app.classList.remove('hidden');
+  $('userEmail').textContent = email ? email : (localMode ? 'Modo local' : 'offline');
+  $('userEmail').classList.remove('hidden');
+  $('btnSair').classList.toggle('hidden', localMode);
+  render();
+}
+
+function closeApp(){
+  app.classList.add('hidden');
+  gate.classList.remove('hidden');
+  if(unsubTx){ unsubTx(); unsubTx=null; }
+  transacoes = [];
+}
+
+function initFirebase(){
+  try{
+    firebase.initializeApp(cfg);
+    auth = firebase.auth();
+    db   = firebase.firestore();
+
+    // Optional: cache offline Firestore
+    try{ db.enablePersistence({synchronizeTabs:true}); }catch(e){ /* ok se falhar no Pages */ }
+
+    auth.onAuthStateChanged(async user=>{
+      if(user){
+        localMode=false; currentUser=user;
+        openApp(user.email||'');
+        bindCloud(user.uid);
+      }else{
+        currentUser=null;
+        if(!localMode) closeApp();
+      }
+    });
+
+    $('btnSair').onclick = ()=> auth.signOut();
+
+    $('authForm').onsubmit = async (e)=>{
+      e.preventDefault();
+      const email=$('authEmail').value.trim(), pass=$('authPass').value;
+      try{
+        if(mode==='login'){ await auth.signInWithEmailAndPassword(email, pass); }
+        else{
+          const p2=$('authPass2').value.trim();
+          if(pass.length<6) return msg.textContent='Senha fraca (mínimo 6).';
+          if(pass!==p2)     return msg.textContent='As senhas não conferem.';
+          await auth.createUserWithEmailAndPassword(email, pass);
+        }
+      }catch(err){
+        const map={
+          "auth/operation-not-allowed":"Ative Email/Password no Firebase.",
+          "auth/invalid-email":"E-mail inválido.",
+          "auth/email-already-in-use":"E-mail já cadastrado.",
+          "auth/wrong-password":"Senha incorreta.",
+          "auth/user-not-found":"Usuário não encontrado."
+        };
+        msg.textContent = map[err.code] || (err.message || 'Falha ao autenticar.');
+      }
+    };
+
+    $('btnGoogle').onclick = async ()=>{
+      const provider=new firebase.auth.GoogleAuthProvider();
+      try{ await auth.signInWithPopup(provider); }
+      catch(err){ try{ await auth.signInWithRedirect(provider); } catch(err2){ msg.textContent=err2.message||'Falha no Google.'; } }
+    };
+
+    $('btnLocal').onclick = ()=>{
+      localMode=true;
+      openApp('Modo local');
+      loadLocal();
+    };
+
+    return true;
+  }catch(e){
+    msg.textContent='Falha ao inicializar Firebase.';
+    diag.textContent='Erro: '+(e.message||e);
+    return false;
+  }
+}
+
+// === Firestore bindings (coleção por usuário) ===
+function txCol(uid){
+  return db.collection('irv_users').doc(uid).collection('transactions');
+}
+
+function bindCloud(uid){
+  if(unsubTx){ unsubTx(); unsubTx=null; }
+  unsubTx = txCol(uid).orderBy('data').onSnapshot(snap=>{
+    transacoes = [];
+    snap.forEach(doc=>{
+      const d = doc.data();
+      transacoes.push({ id:doc.id, ...d });
+    });
+    render();
+  }, err=>{
+    console.warn('[snapshot]', err.message);
+    msg.textContent = 'Sem acesso ao Firestore (verifique as Rules).';
+  });
+}
+
+function saveTxCloud(uid, tx){
+  return txCol(uid).add({
+    ...tx,
+    valor: Number(tx.valor)||0,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+function deleteTxCloud(uid, id){
+  return txCol(uid).doc(id).delete();
+}
+
+// === Local fallback ===
+const LS_KEY='irv_local_tx';
+function loadLocal(){
+  try{ transacoes = JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch(_){ transacoes=[]; }
+  render();
+}
+function saveLocal(){
+  localStorage.setItem(LS_KEY, JSON.stringify(transacoes));
+}
+
+// ===== Form & Tabela =====
+$('form').addEventListener('submit', async (e)=>{
+  if(e.target.id!=='form') return;
+  e.preventDefault();
+  const tx = {
+    igreja: $('igreja').value,
+    data: $('data').value, // YYYY-MM-DD
+    tipo: $('tipo').value,
+    categoria: ($('categoria').value||'').trim(),
+    descricao: ($('descricao').value||'').trim(),
+    valor: parseFloat($('valor').value||'0')
+  };
+  if(!tx.data) return alert('Informe a data.');
+  if(!tx.categoria) return alert('Informe a categoria.');
+  if(!(isFinite(tx.valor) && tx.valor>0)) return alert('Informe um valor válido (>0).');
+
+  try{
+    if(localMode){
+      transacoes.push(tx);
+      saveLocal();
+      render();
+    }else if(currentUser){
+      await saveTxCloud(currentUser.uid, tx);
+    }else{
+      alert('Faça login ou use modo local.');
+    }
+    e.target.reset();
+  }catch(err){
+    alert('Falha ao salvar: '+(err.message||err));
+  }
+});
+
+$('limparForm').addEventListener('click', ()=> $('form').reset());
+
+function render(){
+  const tb=$('lista'); tb.innerHTML='';
+  transacoes
+    .slice()
+    .sort((a,b)=> (a.data||'').localeCompare(b.data||''))
+    .forEach(t=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td class="p-2">${toBR(t.data)}</td>
+        <td class="p-2">${t.igreja||''}</td>
+        <td class="p-2">${t.tipo==='entrada'?'Entrada':'Saída'}</td>
+        <td class="p-2">${t.categoria||''}</td>
+        <td class="p-2">${t.descricao||''}</td>
+        <td class="p-2">R$ ${Number(t.valor||0).toFixed(2)}</td>
+        <td class="p-2 text-right">
+          <button class="btn btn-min text-[12px]" data-id="${t.id||''}" data-idx="${t._idx||''}">Excluir</button>
+        </td>`;
+      tb.appendChild(tr);
+    });
+  // bind delete
+  tb.querySelectorAll('button').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const id = btn.getAttribute('data-id');
+      const idx = btn.getAttribute('data-idx');
+      if(!confirm('Excluir esta transação?')) return;
+      try{
+        if(localMode){
+          const pos = Number(idx);
+          if(isFinite(pos)){ transacoes.splice(pos,1); saveLocal(); render(); }
+        }else if(currentUser && id){
+          await deleteTxCloud(currentUser.uid, id);
+        }
+      }catch(err){ alert('Falha ao excluir: '+(err.message||err)); }
+    };
+  });
+
+  atualizarGraficos();
+}
+
+function toBR(d){ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+
+let g1,g2;
+function atualizarGraficos(){
+  const e=transacoes.filter(t=>t.tipo==='entrada').reduce((a,b)=>a+(+b.valor||0),0);
+  const s=transacoes.filter(t=>t.tipo==='saida').reduce((a,b)=>a+(+b.valor||0),0);
+  try{ g1&&g1.destroy(); }catch(_){}
+  g1=new Chart(document.getElementById('graficoBarras'),{
+    type:'bar', data:{labels:['Entradas','Saídas'],datasets:[{label:'Valores',data:[e,s]}]},
+    options:{responsive:true,maintainAspectRatio:false}
+  });
+  const cat={}; transacoes.forEach(t=> cat[t.categoria]=(cat[t.categoria]||0)+(+t.valor||0));
+  try{ g2&&g2.destroy(); }catch(_){}
+  g2=new Chart(document.getElementById('graficoPizza'),{
+    type:'doughnut', data:{labels:Object.keys(cat),datasets:[{data:Object.values(cat)}]},
+    options:{responsive:true,maintainAspectRatio:false}
+  });
+}
+
+// Start
+const ok = (function(){
+  const started = initFirebase();
+  // Diagnóstico útil
+  diag.textContent = 'SDK Firebase: '+(started?'OK':'FALHOU')+
+                     '\nDomínio atual: '+location.host+
+                     '\nLembre-se de adicionar este domínio em Authentication → Authorized domains.';
+  return started;
+})();
 </script>
 </body>
 </html>
