@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Controle Financeiro IRV</title>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body{background:linear-gradient(135deg,#0f172a 0%,#111827 60%,#0b1220 100%);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+  .login-card{background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border:1px solid rgba(226,232,240,.7);border-radius:20px;box-shadow:0 20px 40px rgba(0,0,0,.25)}
+  .brand{letter-spacing:.5px}
+  .btn{padding:.8rem 1rem;border-radius:12px;font-weight:600}
+  .btn-primary{background:#111827;color:#fff}
+  .btn-min{background:#fff;border:1px solid #e5e7eb}
+  .tab{flex:1;padding:.75rem;border-bottom:2px solid transparent;text-align:center;font-weight:700}
+  .tab.active{border-color:#111827;color:#111827}
+  .hint{font-size:.8rem;color:#64748b}
+</style>
+<!-- Firebase compat SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+</head>
+<body class="min-h-screen">
+
+<!-- GATE -->
+<div id="authGate" class="fixed inset-0 z-50 flex items-center justify-center p-5">
+  <div class="absolute inset-0 opacity-[.15] bg-[radial-gradient(circle_at_20%_20%,#22d3ee,transparent_35%),radial-gradient(circle_at_80%_30%,#34d399,transparent_35%),radial-gradient(circle_at_50%_80%,#60a5fa,transparent_40%)]"></div>
+  <div class="relative login-card w-full max-w-md p-6">
+    <div class="text-center mb-5">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white font-bold">IRV</div>
+      <h1 class="brand mt-3 text-xl font-semibold text-slate-900">Controle Financeiro IRV</h1>
+      <p class="hint">Acesse com sua conta ou use o modo local</p>
+    </div>
+    <div class="flex mb-4 border-b border-slate-200">
+      <button id="tabLogin"  class="tab active">Entrar</button>
+      <button id="tabSignup" class="tab">Criar conta</button>
+    </div>
+    <form id="authForm" class="grid gap-3">
+      <div>
+        <label class="text-xs text-slate-500">E-mail</label>
+        <input id="authEmail" type="email" placeholder="email@exemplo.com"
+               class="mt-1 p-3 h-11 w-full text-sm border rounded-xl" required>
+      </div>
+      <div>
+        <label class="text-xs text-slate-500">Senha</label>
+        <input id="authPass" type="password" placeholder="Mínimo 6 caracteres"
+               class="mt-1 p-3 h-11 w-full text-sm border rounded-xl">
+      </div>
+      <div id="signupExtras" class="hidden">
+        <label class="text-xs text-slate-500">Confirmar senha</label>
+        <input id="authPass2" type="password" placeholder="Repita a senha"
+               class="mt-1 p-3 h-11 w-full text-sm border rounded-xl">
+      </div>
+      <button id="submitAuth" class="btn btn-primary w-full mt-2" type="submit">Entrar</button>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="btnGoogle" type="button" class="btn btn-min">Google</button>
+        <button id="btnLocal"  type="button" class="btn btn-min">Modo local</button>
+      </div>
+      <div id="authMsg" class="text-xs text-rose-600 min-h-[1.25rem] text-center"></div>
+      <details class="text-xs text-slate-600">
+        <summary class="cursor-pointer">Diagnóstico</summary>
+        <pre id="diagBox" class="mt-1 whitespace-pre-wrap"></pre>
+      </details>
+    </form>
+    <p class="hint mt-4 text-center">
+      Dica: se o Google bloquear popup, o app tenta o <strong>redirect</strong> automaticamente.
+    </p>
+  </div>
+</div>
+<!-- APP raiz mínima -->
+<div id="appRoot" class="max-w-5xl mx-auto p-4 hidden">
+  <h1 class="text-xl font-bold mb-4">✅ Logado! Aqui ficará a aplicação completa</h1>
+</div>
+
+<script>
+// Firebase config
+const cfg = {
+  apiKey: "AIzaSyAwcOnl2340CVBpW40ZRMlWwh8Gy0p8UJ8",
+  authDomain: "controle-finaceiro-2e6c7.firebaseapp.com",
+  projectId: "controle-finaceiro-2e6c7",
+  storageBucket: "controle-finaceiro-2e6c7.appspot.com",
+  messagingSenderId: "63325455070",
+  appId: "1:63325455070:web:ca2fb5b1e28fc4b8cdb84f"
+};
+const $=id=>document.getElementById(id);
+const gate=$('authGate'), app=$('appRoot'), msg=$('authMsg'), diag=$('diagBox');
+const tabLogin=$('tabLogin'), tabSignup=$('tabSignup'), pass2=$('authPass2'), submitAuth=$('submitAuth'), signupExtras=$('signupExtras');
+let mode='login';
+function setMode(m){mode=m;if(m==='login'){tabLogin.classList.add('active');tabSignup.classList.remove('active');signupExtras.classList.add('hidden');submitAuth.textContent='Entrar';}else{tabSignup.classList.add('active');tabLogin.classList.remove('active');signupExtras.classList.remove('hidden');submitAuth.textContent='Criar conta';}msg.textContent='';}
+tabLogin.onclick=()=>setMode('login');tabSignup.onclick=()=>setMode('signup');
+let auth=null;
+function openApp(){gate.classList.add('hidden');app.classList.remove('hidden');}
+function initFirebase(){
+  try{firebase.initializeApp(cfg);auth=firebase.auth();
+    auth.onAuthStateChanged(user=>{if(user){openApp();}else{app.classList.add('hidden');gate.classList.remove('hidden');}});
+    $('authForm').onsubmit=async e=>{e.preventDefault();const email=$('authEmail').value.trim(),pass=$('authPass').value;
+      try{if(mode==='login'){await auth.signInWithEmailAndPassword(email,pass);}else{const p2=$('authPass2').value.trim();if(pass.length<6)return msg.textContent='Senha fraca (mín. 6).';if(pass!==p2)return msg.textContent='As senhas não conferem.';await auth.createUserWithEmailAndPassword(email,pass);}}
+      catch(err){const map={"auth/operation-not-allowed":"Ative Email/Password no Firebase.","auth/invalid-email":"E-mail inválido.","auth/email-already-in-use":"E-mail já cadastrado.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Usuário não encontrado."};msg.textContent=map[err.code]||(err.message||'Erro');}};
+    $('btnGoogle').onclick=async()=>{const prov=new firebase.auth.GoogleAuthProvider();try{await auth.signInWithPopup(prov);}catch(e){try{await auth.signInWithRedirect(prov);}catch(e2){msg.textContent=e2.message||'Falha no Google.';}}};
+    $('btnLocal').onclick=()=>openApp();
+    return true;
+  }catch(e){msg.textContent='Falha Firebase';diag.textContent='Erro: '+(e.message||e);return false;}
+}
+initFirebase();
+</script>
+</body>
+</html>
