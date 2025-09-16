@@ -7,59 +7,57 @@
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  body{background:linear-gradient(135deg,#0f172a 0%,#111827 60%,#0b1220 100%);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
-  .card{background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border:1px solid rgba(226,232,240,.7);border-radius:20px;box-shadow:0 20px 40px rgba(0,0,0,.25)}
-  .btn{padding:.8rem 1rem;border-radius:12px;font-weight:600}
-  .btn-primary{background:#111827;color:#fff}
-  .btn-min{background:#fff;border:1px solid #e5e7eb}
-  .tab{flex:1;padding:.75rem;border-bottom:2px solid transparent;text-align:center;font-weight:700}
-  .tab.active{border-color:#111827;color:#111827}
-  .hint{font-size:.8rem;color:#64748b}
-  .badge{display:inline-block;padding:.1rem .5rem;border-radius:999px;border:1px solid #e5e7eb;font-size:.75rem}
-  .err{color:#dc2626;font-size:.8rem}
-  details > summary {cursor:pointer}
-</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <!-- Firebase compat SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  :root { --bg:#0b1220; --card:#0f172a; --muted:#94a3b8; --text:#e5e7eb; --border:#1f2937; --primary:#111827; }
+  body{background:linear-gradient(135deg,#0f172a 0%,#0b1220 70%); color:var(--text); font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:0 16px 40px rgba(0,0,0,.25)}
+  .btn{padding:.65rem .9rem;border-radius:.9rem;font-weight:600;transition:.15s}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:#111827;color:#fff;border:1px solid #111827}
+  .btn-min{background:transparent;color:#e5e7eb;border:1px solid var(--border)}
+  .btn-green{background:#065f46;color:#ecfdf5;border:1px solid #064e3b}
+  .btn-red{background:#7f1d1d;color:#fee2e2;border:1px solid #7f1d1d}
+  .chip{border:1px solid var(--border);padding:.15rem .5rem;border-radius:999px;font-size:.75rem;color:var(--muted)}
+  .tab{padding:.65rem 1rem;border:1px solid var(--border);border-radius:.75rem;background:#0b1326}
+  .tab.active{background:#111827;border-color:#111827}
+  .field{display:flex;flex-direction:column;gap:.25rem}
+  input,select{background:#0b1326;border:1px solid var(--border);color:#e5e7eb;border-radius:.7rem;height:2.5rem;padding:.5rem .75rem}
+  table th{color:#94a3b8;font-weight:600}
+  .err{color:#fca5a5}
+  details > summary {cursor:pointer}
+</style>
 </head>
 <body class="min-h-screen">
-
-<!-- ===== GATE (login) ===== -->
+<!-- LOGIN -->
 <div id="authGate" class="fixed inset-0 z-50 flex items-center justify-center p-5">
-  <div class="absolute inset-0 opacity-[.15] bg-[radial-gradient(circle_at_20%_20%,#22d3ee,transparent_35%),radial-gradient(circle_at_80%_30%,#34d399,transparent_35%),radial-gradient(circle_at_50%_80%,#60a5fa,transparent_40%)]"></div>
+  <div class="absolute inset-0 opacity-[.18] bg-[radial-gradient(circle_at_20%_20%,#22d3ee,transparent_35%),radial-gradient(circle_at_80%_30%,#34d399,transparent_35%),radial-gradient(circle_at_50%_80%,#60a5fa,transparent_40%)]"></div>
   <div class="relative card w-full max-w-md p-6">
     <div class="text-center mb-5">
       <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white font-bold">IRV</div>
-      <h1 class="mt-3 text-xl font-semibold text-slate-900">Controle Financeiro IRV</h1>
-      <p class="hint">Entre com email/senha, Google ou use modo local</p>
+      <h1 class="mt-3 text-xl font-semibold">Controle Financeiro IRV</h1>
+      <p class="text-sm" style="color:var(--muted)">Entre com e-mail/senha, Google ou Modo local</p>
     </div>
-    <div class="flex mb-4 border-b border-slate-200">
+    <div class="flex gap-2 mb-4">
       <button id="tabLogin"  class="tab active">Entrar</button>
       <button id="tabSignup" class="tab">Criar conta</button>
     </div>
     <form id="authForm" class="grid gap-3">
-      <div>
-        <label class="text-xs text-slate-500">E-mail</label>
-        <input id="authEmail" type="email" placeholder="email@exemplo.com" class="mt-1 p-3 h-11 w-full text-sm border rounded-xl" required>
-      </div>
-      <div>
-        <label class="text-xs text-slate-500">Senha</label>
-        <input id="authPass" type="password" placeholder="Mínimo 6 caracteres" class="mt-1 p-3 h-11 w-full text-sm border rounded-xl">
-      </div>
-      <div id="signupExtras" class="hidden">
-        <label class="text-xs text-slate-500">Confirmar senha</label>
-        <input id="authPass2" type="password" placeholder="Repita a senha" class="mt-1 p-3 h-11 w-full text-sm border rounded-xl">
-      </div>
-      <button id="submitAuth" class="btn btn-primary w-full mt-2" type="submit">Entrar</button>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">E-mail</label><input id="authEmail" type="email" placeholder="email@exemplo.com" required></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Senha</label><input id="authPass" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div id="signupExtras" class="field hidden"><label class="text-xs" style="color:var(--muted)">Confirmar senha</label><input id="authPass2" type="password" placeholder="Repita a senha"></div>
+      <button id="submitAuth" class="btn btn-primary w-full mt-1" type="submit">Entrar</button>
       <div class="grid grid-cols-2 gap-2">
         <button id="btnGoogle" type="button" class="btn btn-min">Google</button>
         <button id="btnLocal"  type="button" class="btn btn-min">Modo local</button>
       </div>
       <div id="authMsg" class="err min-h-[1.25rem] text-center"></div>
-      <details class="text-xs text-slate-600">
+      <details class="text-xs" style="color:var(--muted)">
         <summary>Diagnóstico</summary>
         <pre id="diagBox" class="mt-1 whitespace-pre-wrap"></pre>
       </details>
@@ -67,67 +65,111 @@
   </div>
 </div>
 
-<!-- ===== APP ===== -->
-<div id="appRoot" class="max-w-6xl mx-auto p-4 hidden">
+<!-- APP -->
+<div id="appRoot" class="max-w-7xl mx-auto p-4 hidden">
   <header class="mb-4 flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-semibold text-white">Controle Financeiro IRV</h1>
-      <p class="hint text-slate-300">Dados salvos no Firestore por usuário</p>
+    <div class="flex items-center gap-3">
+      <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-black text-white font-bold">IRV</div>
+      <div>
+        <h1 class="text-xl font-semibold">Controle Financeiro IRV</h1>
+        <div class="text-xs" style="color:var(--muted)">Igrejas Alagoinhas e Entre Rios • Valores em BRL</div>
+      </div>
     </div>
     <div class="flex items-center gap-2">
-      <span id="userEmail" class="badge bg-white/70">offline</span>
+      <span id="userEmail" class="chip">offline</span>
+      <button id="btnBackupExport" class="btn btn-min" title="Baixar backup JSON">Backup</button>
+      <label class="btn btn-min cursor-pointer">
+        Importar
+        <input type="file" id="backupImport" accept="application/json" class="hidden">
+      </label>
       <button id="btnSair" class="btn btn-min hidden">Sair</button>
     </div>
   </header>
 
   <!-- Dashboards -->
-  <section class="grid md:grid-cols-2 gap-4 mb-4">
+  <section class="grid md:grid-cols-3 gap-4 mb-4">
     <div class="card p-3">
-      <h3 class="font-medium mb-2">Entradas x Saídas</h3>
-      <div class="h-[180px]"><canvas id="graficoBarras"></canvas></div>
+      <div class="text-sm mb-2" style="color:var(--muted)">Entradas x Saídas (mês atual)</div>
+      <div class="h-[140px]"><canvas id="graficoBarras"></canvas></div>
     </div>
     <div class="card p-3">
-      <h3 class="font-medium mb-2">Distribuição por Categoria</h3>
-      <div class="h-[180px]"><canvas id="graficoPizza"></canvas></div>
+      <div class="text-sm mb-2" style="color:var(--muted)">Categorias (mês atual)</div>
+      <div class="h-[140px]"><canvas id="graficoPizza"></canvas></div>
+    </div>
+    <div class="card p-3">
+      <div class="text-sm mb-2" style="color:var(--muted)">Saldo (mês atual)</div>
+      <div class="h-[140px] flex items-center justify-center">
+        <div class="text-center">
+          <div class="text-3xl font-bold" id="saldoAtual">R$ 0,00</div>
+          <div class="text-xs" id="resumoMini" style="color:var(--muted)">E: 0 • S: 0</div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- Form -->
+  <!-- Fechamento + PDF -->
+  <section class="grid md:grid-cols-2 gap-4 mb-4">
+    <div class="card p-3">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-medium">Fechamento mensal</h3>
+        <span id="statusFech" class="chip">Mês atual: aberto</span>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-2">
+        <div class="field"><label class="text-xs" style="color:var(--muted)">Competência</label><input type="month" id="competencia"></div>
+        <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="competenciaIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+      </div>
+      <div class="mt-3 flex gap-2">
+        <button id="btnFechar" class="btn btn-primary">Fechar mês</button>
+        <button id="btnReabrir" class="btn btn-min">Reabrir</button>
+      </div>
+      <p class="text-xs mt-2" style="color:var(--muted)">Bloqueia lançamentos em meses anteriores. Para lançar no mês seguinte, feche o mês atual.</p>
+    </div>
+
+    <div class="card p-3">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-medium">Livro Caixa (PDF)</h3>
+        <button id="btnPdf" class="btn btn-min">Exportar PDF</button>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-2">
+        <div class="field"><label class="text-xs" style="color:var(--muted)">Início</label><input type="date" id="pdfInicio"></div>
+        <div class="field"><label class="text-xs" style="color:var(--muted)">Fim</label><input type="date" id="pdfFim"></div>
+        <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="pdfIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+      </div>
+      <div class="text-xs mt-2" style="color:var(--muted)">O PDF inclui resumo: <em>Saldo anterior, Entradas, Saídas e Saldo atual</em>.</div>
+    </div>
+  </section>
+
+  <!-- Form com menus -->
   <section class="card p-3 mb-4">
-    <form id="form" class="grid md:grid-cols-6 gap-3 items-end">
-      <div>
-        <label class="text-xs text-slate-500">Igreja</label>
-        <select id="igreja" class="p-2 h-10 text-sm border rounded-xl w-full">
-          <option>Alagoinhas</option><option>Entre Rios</option>
-        </select>
+    <div class="flex gap-2 mb-3">
+      <button id="tabEntrada" class="tab active" type="button">Entrada</button>
+      <button id="tabSaida" class="tab" type="button">Saída</button>
+      <span class="ml-auto text-xs" style="color:var(--muted)">Crie novas categorias com <span class="chip">+ Categoria</span></span>
+    </div>
+    <form id="form" class="grid md:grid-cols-8 gap-3 items-end">
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="igreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Data</label><input type="date" id="data" required></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
+      <div class="field md:col-span-2">
+        <label class="text-xs" style="color:var(--muted)">Categoria</label>
+        <div class="flex gap-2"><select id="categoria" class="flex-1"></select><button type="button" id="btnAddCategoria" class="btn btn-min">+ Categoria</button></div>
       </div>
-      <div>
-        <label class="text-xs text-slate-500">Data</label>
-        <input type="date" id="data" class="p-2 h-10 text-sm border rounded-xl w-full" required>
-      </div>
-      <div>
-        <label class="text-xs text-slate-500">Tipo</label>
-        <select id="tipo" class="p-2 h-10 text-sm border rounded-xl w-full">
-          <option value="entrada">Entrada</option><option value="saida">Saída</option>
-        </select>
-      </div>
-      <div>
-        <label class="text-xs text-slate-500">Categoria</label>
-        <input type="text" id="categoria" class="p-2 h-10 text-sm border rounded-xl w-full" placeholder="Ex.: Dízimo" required>
-      </div>
-      <div class="md:col-span-2">
-        <label class="text-xs text-slate-500">Descrição</label>
-        <input type="text" id="descricao" class="p-2 h-10 text-sm border rounded-xl w-full" placeholder="Opcional">
-      </div>
-      <div>
-        <label class="text-xs text-slate-500">Valor</label>
-        <input type="number" id="valor" step="0.01" class="p-2 h-10 text-sm border rounded-xl w-full" required>
-      </div>
-      <div class="md:col-span-6 flex gap-2">
-        <button class="btn btn-primary" type="submit">Adicionar</button>
-        <button class="btn btn-min" type="button" id="limparForm">Limpar</button>
-      </div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Forma</label><select id="forma"><option>Dinheiro</option><option>Pix</option></select></div>
+      <div class="field md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="descricao" placeholder="Opcional"></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="number" id="valor" step="0.01" required></div>
+      <div class="md:col-span-8 flex gap-2"><button class="btn btn-primary" type="submit">Adicionar</button><button class="btn btn-min" type="button" id="limparForm">Limpar</button></div>
     </form>
+  </section>
+
+  <!-- Filtros -->
+  <section class="card p-3 mb-3">
+    <div class="grid md:grid-cols-5 gap-2">
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="fIgreja"><option value="">Todas</option><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="fTipo"><option value="">Todos</option><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Categoria</label><input id="fCategoria" placeholder="Ex.: Dízimo"></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Pesquisa</label><input id="fBusca" placeholder="Descrição…"></div>
+      <div class="field"><label class="text-xs" style="color:var(--muted)">Período</label><div class="flex gap-2"><input type="month" id="fMes" class="flex-1"><button id="btnLimparFiltros" class="btn btn-min" type="button">Limpar</button></div></div>
+    </div>
   </section>
 
   <!-- Lista -->
@@ -136,9 +178,9 @@
     <div class="overflow-x-auto">
       <table class="w-full text-left">
         <thead>
-          <tr class="text-xs uppercase tracking-wide text-slate-500 border-b">
+          <tr class="text-xs uppercase tracking-wide border-b" style="color:var(--muted);border-color:var(--border)">
             <th class="p-2">Data</th><th class="p-2">Igreja</th><th class="p-2">Tipo</th>
-            <th class="p-2">Categoria</th><th class="p-2">Descrição</th><th class="p-2">Valor</th><th class="p-2 text-right">Ações</th>
+            <th class="p-2">Categoria</th><th class="p-2">Forma</th><th class="p-2">Descrição</th><th class="p-2">Valor</th><th class="p-2 text-right">Ações</th>
           </tr>
         </thead>
         <tbody id="lista" class="text-sm"></tbody>
@@ -148,7 +190,7 @@
 </div>
 
 <script>
-// ===== Config Firebase do seu projeto (corrigida para appspot.com) =====
+// ===== Firebase config (mantida) =====
 const cfg = {
   apiKey: "AIzaSyBanW9qGTl2st7HdM-kkg-WClgY0gEE7co",
   authDomain: "controle-fin-23a33.firebaseapp.com",
@@ -159,203 +201,371 @@ const cfg = {
   measurementId: "G-CHB6CVWZ7E"
 };
 
+// ===== Helpers
 const $ = (id)=>document.getElementById(id);
+const fmtBRL = (n)=> 'R$ '+Number(n||0).toFixed(2).replace('.',',');
+const toBR = (d)=>{ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; };
+const ym = (d)=> d ? d.slice(0,7) : '';
+
+// ===== Estado
+let auth=null, db=null, currentUser=null, unsubTx=null, localMode=false;
+let transacoes=[];
+let cats = { entrada:['Dízimo','Oferta','Doação'], saida:['Água','Luz','Som','Material'] };
+let fechados = {}; // { 'YYYY-MM|Igreja': true }
+
+// ===== Login UI
 const gate = $('authGate'), app = $('appRoot'), msg=$('authMsg'), diag=$('diagBox');
-const tabLogin=$('tabLogin'), tabSignup=$('tabSignup'), pass2=$('authPass2'), submitAuth=$('submitAuth'), signupExtras=$('signupExtras');
-let mode = 'login';
+const tabLogin=$('tabLogin'), tabSignup=$('tabSignup'), submitAuth=$('submitAuth'), signupExtras=$('signupExtras');
+let mode='login';
 function setMode(m){ mode=m; if(m==='login'){ tabLogin.classList.add('active'); tabSignup.classList.remove('active'); signupExtras.classList.add('hidden'); submitAuth.textContent='Entrar'; } else { tabSignup.classList.add('active'); tabLogin.classList.remove('active'); signupExtras.classList.remove('hidden'); submitAuth.textContent='Criar conta'; } if(msg) msg.textContent=''; }
 tabLogin.onclick=()=>setMode('login'); tabSignup.onclick=()=>setMode('signup');
 
-let auth=null, db=null, unsubTx=null, currentUser=null, localMode=false;
-let transacoes = []; // estado em memória (também para modo local)
-
-function mask(k){ return k ? k.slice(0,6)+'•••'+k.slice(-4) : ''; }
-
-function openApp(email){
-  gate.classList.add('hidden');
-  app.classList.remove('hidden');
-  $('userEmail').textContent = email ? email : (localMode ? 'Modo local' : 'offline');
-  $('userEmail').classList.remove('hidden');
-  $('btnSair').classList.toggle('hidden', localMode);
-  render();
-}
-
-function closeApp(){
-  app.classList.add('hidden');
-  gate.classList.remove('hidden');
-  if(unsubTx){ unsubTx(); unsubTx=null; }
-  transacoes = [];
-}
-
+// ===== Inicialização Firebase
 function initFirebase(){
   try{
     firebase.initializeApp(cfg);
     auth = firebase.auth();
     db   = firebase.firestore();
-
-    // Diagnóstico
-    const lines = [
-      'Firebase init: OK',
-      'projectId: '+cfg.projectId,
-      'authDomain: '+cfg.authDomain,
-      'apiKey: '+mask(cfg.apiKey),
-      'Host: '+location.host,
-      'Dica: adicione este host em Authentication > Authorized domains'
-    ];
-    const d = $('diagBox'); if(d) d.textContent = lines.join('\\n');
-
-    try{ db.enablePersistence({synchronizeTabs:true}); }catch(e){ /* ok se falhar */ }
-
-    auth.onAuthStateChanged(user=>{
-      if(user){ localMode=false; currentUser=user; openApp(user.email||''); bindCloud(user.uid); }
-      else { currentUser=null; if(!localMode) closeApp(); }
+    try{ db.enablePersistence({synchronizeTabs:true}); }catch(_){}
+    if(diag) diag.textContent = ['Firebase init: OK','projectId: '+cfg.projectId,'authDomain: '+cfg.authDomain].join('\\n');
+    auth.onAuthStateChanged(async user=>{
+      if(user){ localMode=false; currentUser=user; $('userEmail').textContent=user.email||''; $('btnSair').classList.remove('hidden'); openApp(); await loadUserData(); }
+      else { currentUser=null; $('btnSair').classList.add('hidden'); closeApp(); }
     });
-
-    $('btnSair').onclick = ()=> auth.signOut();
-
     $('authForm').onsubmit = async (e)=>{
       e.preventDefault();
       const email=$('authEmail').value.trim(), pass=$('authPass').value;
       try{
         if(mode==='login'){ await auth.signInWithEmailAndPassword(email, pass); }
-        else{
-          const p2=$('authPass2').value.trim();
-          if(pass.length<6) return msg.textContent='Senha fraca (mínimo 6).';
-          if(pass!==p2)     return msg.textContent='As senhas não conferem.';
-          await auth.createUserWithEmailAndPassword(email, pass);
-        }
-      }catch(err){
-        const map={
-          "auth/api-key-not-valid":"API key inválida para Web (confira a config do App Web e restrições da chave).",
-          "auth/operation-not-allowed":"Ative Email/Password no Firebase.",
-          "auth/invalid-email":"E-mail inválido.",
-          "auth/email-already-in-use":"E-mail já cadastrado.",
-          "auth/wrong-password":"Senha incorreta.",
-          "auth/user-not-found":"Usuário não encontrado."
-        };
-        msg.textContent = map[err.code] || (err.message || 'Falha ao autenticar.');
-      }
+        else { const p2=$('authPass2').value.trim(); if(pass.length<6) return msg.textContent='Senha fraca (mín. 6).'; if(pass!==p2) return msg.textContent='As senhas não conferem.'; await auth.createUserWithEmailAndPassword(email, pass); }
+      }catch(err){ const map={"auth/operation-not-allowed":"Ative Email/Password no Firebase.","auth/invalid-email":"E-mail inválido.","auth/email-already-in-use":"E-mail já cadastrado.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Usuário não encontrado.","auth/api-key-not-valid":"API key inválida para Web."}; msg.textContent = map[err.code] || (err.message||'Erro'); }
     };
-
-    $('btnGoogle').onclick = async ()=>{
-      const provider=new firebase.auth.GoogleAuthProvider();
-      try{ await auth.signInWithPopup(provider); }
-      catch(err){ try{ await auth.signInWithRedirect(provider); } catch(err2){ msg.textContent=err2.message||'Falha no Google.'; } }
-    };
-
-    $('btnLocal').onclick = ()=>{ localMode=true; openApp('Modo local'); loadLocal(); };
-
+    $('btnGoogle').onclick = async ()=>{ const provider=new firebase.auth.GoogleAuthProvider(); try{ await auth.signInWithPopup(provider); }catch(e){ try{ await auth.signInWithRedirect(provider);}catch(e2){ msg.textContent=e2.message||'Falha no Google.'; } } };
+    $('btnLocal').onclick = ()=>{ localMode=true; $('userEmail').textContent='Modo local'; openApp(); loadLocal(); };
+    $('btnSair').onclick = ()=> auth.signOut();
     return true;
-  }catch(e){
-    if (msg) msg.textContent='Falha ao inicializar Firebase.';
-    const d=$('diagBox'); if(d) d.textContent='Firebase init: FALHOU\\nErro: '+(e.message||e)+'\\nVerifique a apiKey e domínios autorizados.';
-    return false;
+  }catch(e){ if(msg) msg.textContent='Falha ao inicializar Firebase.'; if(diag) diag.textContent='Erro: '+(e.message||e); return false; }
+}
+
+function openApp(){ gate.classList.add('hidden'); app.classList.remove('hidden'); renderCategorias(); bindTransacoes(); }
+function closeApp(){ app.classList.add('hidden'); gate.classList.remove('hidden'); if(unsubTx){unsubTx();unsubTx=null;} transacoes=[]; }
+
+// ===== Dados do usuário (categorias + fechamentos)
+async function loadUserData(){
+  try{ const doc = await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').get();
+    if(doc.exists){ const data=doc.data(); if(data.entrada) cats.entrada=data.entrada; if(data.saida) cats.saida=data.saida; }
+  }catch(_){}
+  try{ const snap = await db.collection('irv_users').doc(currentUser.uid).collection('closures').get();
+    fechados={}; snap.forEach(d=> fechados[d.id]=!!d.data().closed);
+  }catch(_){}
+  renderCategorias(); updateFechStatus();
+}
+
+// ===== Categorias UI
+function renderCategorias(){
+  const tipo = $('tipo').value; const el=$('categoria'); el.innerHTML='';
+  (cats[tipo]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); });
+}
+$('tipo').addEventListener('change', renderCategorias);
+
+$('btnAddCategoria').onclick = async ()=>{
+  const tipo=$('tipo').value;
+  const nome = prompt('Nova categoria de '+(tipo==='entrada'?'Entrada':'Saída')+':');
+  if(!nome) return;
+  if(!cats[tipo].includes(nome)) cats[tipo].push(nome);
+  renderCategorias();
+  if(!localMode && currentUser){
+    await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true});
+  }else{
+    localStorage.setItem('irv_local_cats', JSON.stringify(cats));
   }
+};
+
+// ===== Fechamento
+function isMonthClosed(yyyyMM, igreja){ return !!fechados[`${yyyyMM}|${igreja}`]; }
+function setMonthClosed(yyyyMM, igreja, closed){ fechados[`${yyyyMM}|${igreja}`]=closed; }
+
+function updateFechStatus(){
+  const comp=$('competencia').value || new Date().toISOString().slice(0,7);
+  const ig=$('competenciaIgreja').value;
+  $('statusFech').textContent = `Mês ${comp} • ${ig} • ${isMonthClosed(comp,ig)?'FECHADO':'aberto'}`;
+}
+$('competencia').addEventListener('change', updateFechStatus);
+$('competenciaIgreja').addEventListener('change', updateFechStatus);
+
+$('btnFechar').onclick = async ()=>{
+  const comp=$('competencia').value || new Date().toISOString().slice(0,7);
+  const ig=$('competenciaIgreja').value;
+  setMonthClosed(comp,ig,true);
+  if(!localMode && currentUser){
+    await db.collection('irv_users').doc(currentUser.uid).collection('closures').doc(`${comp}|${ig}`).set({closed:true,at:firebase.firestore.FieldValue.serverTimestamp()});
+  }else{
+    localStorage.setItem('irv_local_closures', JSON.stringify(fechados));
+  }
+  updateFechStatus(); alert('Mês fechado.');
+};
+$('btnReabrir').onclick = async ()=>{
+  const comp=$('competencia').value || new Date().toISOString().slice(0,7);
+  const ig=$('competenciaIgreja').value;
+  setMonthClosed(comp,ig,false);
+  if(!localMode && currentUser){
+    await db.collection('irv_users').doc(currentUser.uid).collection('closures').doc(`${comp}|${ig}`).set({closed:false,at:firebase.firestore.FieldValue.serverTimestamp()});
+  }else{
+    localStorage.setItem('irv_local_closures', JSON.stringify(fechados));
+  }
+  updateFechStatus(); alert('Mês reaberto.');
+};
+
+function canAddOn(dateStr, igreja){
+  if(!dateStr) return false;
+  const today = new Date();
+  const yyyyMM = ym(dateStr);
+  const cur = today.toISOString().slice(0,7);
+  if(yyyyMM < cur) return false;
+  const next = new Date(today.getFullYear(), today.getMonth()+1, 1).toISOString().slice(0,7);
+  if(yyyyMM === next && !isMonthClosed(cur, igreja)) return false;
+  return true;
 }
 
-// === Firestore helpers ===
-function txCol(uid){ return db.collection('irv_users').doc(uid).collection('transactions'); }
+// ===== Firestore
+function txCol(){ return db.collection('irv_users').doc(currentUser.uid).collection('transactions'); }
 
-function bindCloud(uid){
+function bindTransacoes(){
+  if(localMode || !currentUser){ render(); return; }
   if(unsubTx){ unsubTx(); unsubTx=null; }
-  unsubTx = txCol(uid).orderBy('data').onSnapshot(snap=>{
-    transacoes = [];
-    let i=0; snap.forEach(doc=> transacoes.push({ id:doc.id, _idx:i++, ...doc.data() }));
+  unsubTx = txCol().orderBy('data').onSnapshot(snap=>{
+    transacoes=[]; let i=0;
+    snap.forEach(doc=> transacoes.push({ id:doc.id, _idx:i++, ...doc.data() }));
     render();
-  }, err=>{ console.warn('[snapshot]', err.message); if(msg) msg.textContent = 'Sem acesso ao Firestore (verifique as Rules).'; });
+  }, err=>{
+    console.warn('[snapshot]', err.message);
+    const amsg = document.createElement('div'); amsg.className='err text-center mb-2'; amsg.textContent='Sem acesso ao Firestore (verifique as Rules).';
+    document.querySelector('#appRoot').prepend(amsg);
+  });
 }
 
-function saveTxCloud(uid, tx){
-  return txCol(uid).add({ ...tx, valor:Number(tx.valor)||0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-}
-function deleteTxCloud(uid, id){ return txCol(uid).doc(id).delete(); }
-
-// === Local fallback ===
-const LS_KEY='irv_local_tx';
-function loadLocal(){ try{ transacoes = JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch(_){ transacoes=[]; } render(); }
-function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(transacoes)); }
-
-// ==== Form / Table ====
+// ===== Salvar
 document.getElementById('form').addEventListener('submit', async (e)=>{
-  if(e.target.id!=='form') return;
   e.preventDefault();
   const tx = {
-    igreja: document.getElementById('igreja').value,
-    data: document.getElementById('data').value,
-    tipo: document.getElementById('tipo').value,
-    categoria: (document.getElementById('categoria').value||'').trim(),
-    descricao: (document.getElementById('descricao').value||'').trim(),
-    valor: parseFloat(document.getElementById('valor').value||'0')
+    igreja: $('igreja').value,
+    data: $('data').value,
+    tipo: $('tipo').value,
+    categoria: $('categoria').value,
+    forma: $('forma').value,
+    descricao: ($('descricao').value||'').trim(),
+    valor: parseFloat($('valor').value||'0')
   };
   if(!tx.data) return alert('Informe a data.');
+  if(!canAddOn(tx.data, tx.igreja)) return alert('Lançamentos em meses anteriores são bloqueados.\nPara lançar no próximo mês, feche o mês atual.');
   if(!tx.categoria) return alert('Informe a categoria.');
-  if(!(isFinite(tx.valor) && tx.valor>0)) return alert('Informe um valor válido (>0).');
+  if(!(isFinite(tx.valor)&&tx.valor>0)) return alert('Informe um valor válido (>0).');
   try{
-    if(localMode){ transacoes.push(tx); saveLocal(); render(); }
-    else if(currentUser){ await saveTxCloud(currentUser.uid, tx); }
-    else { alert('Faça login ou use modo local.'); }
+    if(localMode || !currentUser){
+      transacoes.push({...tx, id:'local-'+Date.now()});
+      localStorage.setItem('irv_local_tx', JSON.stringify(transacoes));
+      render();
+    }else{
+      await txCol().add({...tx, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+    }
     e.target.reset();
   }catch(err){ alert('Falha ao salvar: '+(err.message||err)); }
 });
+$('limparForm').onclick = ()=> $('form').reset();
 
-document.getElementById('limparForm').addEventListener('click', ()=> document.getElementById('form').reset());
+// ===== Filtros
+['fIgreja','fTipo','fCategoria','fBusca','fMes'].forEach(id=> $(id).addEventListener('input', render));
+$('btnLimparFiltros').onclick = ()=>{ ['fIgreja','fTipo','fCategoria','fBusca','fMes'].forEach(id=> $(id).value=''); render(); };
 
+// ===== Render
 function render(){
-  const tb=document.getElementById('lista'); tb.innerHTML='';
-  transacoes.slice().sort((a,b)=>(a.data||'').localeCompare(b.data||'')).forEach((t,idx)=>{
+  const tb=$('lista'); tb.innerHTML='';
+  if(localMode){
+    try{ const lc=localStorage.getItem('irv_local_cats'); if(lc) cats=JSON.parse(lc); }catch(_){}
+    try{ const lc2=localStorage.getItem('irv_local_closures'); if(lc2) fechados=JSON.parse(lc2); }catch(_){}
+    try{ transacoes = JSON.parse(localStorage.getItem('irv_local_tx'))||transacoes; }catch(_){}
+  }
+  const fi=$('fIgreja').value, ft=$('fTipo').value, fc=($('fCategoria').value||'').toLowerCase(), fb=($('fBusca').value||'').toLowerCase(), fm=$('fMes').value;
+  const rows = transacoes.filter(t=> (!fi || t.igreja===fi) && (!ft || t.tipo===ft) && (!fc || (t.categoria||'').toLowerCase().includes(fc)) && (!fb || (t.descricao||'').toLowerCase().includes(fb)) && (!fm || ym(t.data)===fm));
+
+  rows.sort((a,b)=> (a.data||'').localeCompare(b.data||''));
+  let totE=0, totS=0;
+
+  rows.forEach((t,idx)=>{
+    if(t.tipo==='entrada') totE += (+t.valor||0); else totS += (+t.valor||0);
     const tr=document.createElement('tr');
     tr.innerHTML = `
       <td class="p-2">${toBR(t.data)}</td>
       <td class="p-2">${t.igreja||''}</td>
       <td class="p-2">${t.tipo==='entrada'?'Entrada':'Saída'}</td>
       <td class="p-2">${t.categoria||''}</td>
+      <td class="p-2">${t.forma||''}</td>
       <td class="p-2">${t.descricao||''}</td>
-      <td class="p-2">R$ ${Number(t.valor||0).toFixed(2)}</td>
-      <td class="p-2 text-right">
-        <button class="btn btn-min text-[12px]" data-id="${t.id||''}" data-idx="${idx}">Excluir</button>
+      <td class="p-2">${fmtBRL(t.valor)}</td>
+      <td class="p-2 text-right flex justify-end gap-2">
+        <button class="btn btn-green text-xs" data-act="edit" data-id="${t.id||''}" data-idx="${idx}">Editar</button>
+        <button class="btn btn-red text-xs" data-act="del"  data-id="${t.id||''}" data-idx="${idx}">Excluir</button>
       </td>`;
     tb.appendChild(tr);
   });
+
   tb.querySelectorAll('button').forEach(btn=>{
     btn.onclick = async ()=>{
-      const id = btn.getAttribute('data-id');
-      const idx = Number(btn.getAttribute('data-idx'));
-      if(!confirm('Excluir esta transação?')) return;
-      try{
-        if(localMode){ transacoes.splice(idx,1); saveLocal(); render(); }
-        else if(currentUser && id){ await deleteTxCloud(currentUser.uid, id); }
-      }catch(err){ alert('Falha ao excluir: '+(err.message||err)); }
+      const act=btn.getAttribute('data-act'); const id=btn.getAttribute('data-id'); const idx=Number(btn.getAttribute('data-idx'));
+      const t = rows[idx]; if(!t) return;
+      if(act==='del'){
+        if(!confirm('Excluir esta transação?')) return;
+        try{
+          if(localMode || !currentUser){
+            const i = transacoes.findIndex(x=> x.id===t.id);
+            if(i>=0){ transacoes.splice(i,1); localStorage.setItem('irv_local_tx', JSON.stringify(transacoes)); }
+            render();
+          }else{
+            await txCol().doc(id).delete();
+          }
+        }catch(err){ alert('Falha ao excluir: '+(err.message||err)); }
+      }else if(act==='edit'){
+        const novoValor = prompt('Novo valor para "'+(t.descricao||t.categoria)+'":', t.valor);
+        if(novoValor===null) return;
+        const nv = parseFloat(novoValor);
+        if(!(isFinite(nv)&&nv>0)) return alert('Valor inválido.');
+        try{
+          if(localMode || !currentUser){
+            const i = transacoes.findIndex(x=> x.id===t.id);
+            if(i>=0){ transacoes[i].valor = nv; localStorage.setItem('irv_local_tx', JSON.stringify(transacoes)); }
+            render();
+          }else{
+            await txCol().doc(id).set({valor:nv}, {merge:true});
+          }
+        }catch(err){ alert('Falha ao editar: '+(err.message||err)); }
+      }
     };
   });
-  atualizarGraficos();
+
+  // dashboards mês atual
+  const hoje = new Date(); const cur = hoje.toISOString().slice(0,7);
+  const mRows = transacoes.filter(t=> ym(t.data)===cur);
+  const mE = mRows.filter(t=>t.tipo==='entrada').reduce((a,b)=>a+(+b.valor||0),0);
+  const mS = mRows.filter(t=>t.tipo==='saida').reduce((a,b)=>a+(+b.valor||0),0);
+  $('saldoAtual').textContent = fmtBRL(mE - mS);
+  $('resumoMini').textContent = `E: ${fmtBRL(mE)} • S: ${fmtBRL(mS)}`;
+
+  drawCharts(mE, mS, mRows);
+  updateFechStatus();
 }
 
-function toBR(d){ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
-
 let g1,g2;
-function atualizarGraficos(){
-  const e=transacoes.filter(t=>t.tipo==='entrada').reduce((a,b)=>a+(+b.valor||0),0);
-  const s=transacoes.filter(t=>t.tipo==='saida').reduce((a,b)=>a+(+b.valor||0),0);
+function drawCharts(e,s,rows){
   try{ g1&&g1.destroy(); }catch(_){}
-  g1=new Chart(document.getElementById('graficoBarras'),{ type:'bar', data:{labels:['Entradas','Saídas'],datasets:[{label:'Valores',data:[e,s]}]}, options:{responsive:true,maintainAspectRatio:false} });
-  const cat={}; transacoes.forEach(t=> cat[t.categoria]=(cat[t.categoria]||0)+(+t.valor||0));
+  g1=new Chart(document.getElementById('graficoBarras'),{type:'bar',data:{labels:['Entradas','Saídas'],datasets:[{label:'Valores',data:[e,s]}]},options:{responsive:true,maintainAspectRatio:false}});
+  const cat={}; rows.forEach(t=> cat[t.categoria]=(cat[t.categoria]||0)+(+t.valor||0));
   try{ g2&&g2.destroy(); }catch(_){}
-  g2=new Chart(document.getElementById('graficoPizza'),{ type:'doughnut', data:{labels:Object.keys(cat),datasets:[{data:Object.values(cat)}]}, options:{responsive:true,maintainAspectRatio:false} });
+  g2=new Chart(document.getElementById('graficoPizza'),{type:'doughnut',data:{labels:Object.keys(cat),datasets:[{data:Object.values(cat)}]},options:{responsive:true,maintainAspectRatio:false}});
+}
+
+// ==== Livro Caixa PDF
+$('btnPdf').onclick = ()=>{
+  const { jsPDF } = window.jspdf;
+  const inicio=$('pdfInicio').value, fim=$('pdfFim').value, ig=$('pdfIgreja').value;
+  const rows = transacoes
+    .filter(t=> (!inicio || t.data>=inicio) && (!fim || t.data<=fim) && (!ig || t.igreja===ig))
+    .sort((a,b)=> (a.data||'').localeCompare(b.data||''));
+
+  let entradas=0, saidas=0;
+  const table = rows.map(t=>{
+    if(t.tipo==='entrada') entradas+=(+t.valor||0); else saidas+=(+t.valor||0);
+    return [toBR(t.data), t.igreja, (t.tipo==='entrada'?'Entrada':'Saída'), t.categoria, t.forma||'', t.descricao||'', fmtBRL(t.valor)];
+  });
+  const saldoAnterior = 0; // ajuste se precisar considerar períodos anteriores
+  const saldoAtual = saldoAnterior + entradas - saidas;
+
+  const doc = new jsPDF({unit:'pt'});
+  doc.setFontSize(14); doc.text('Livro Caixa - Controle Financeiro IRV', 40, 40);
+  doc.setFontSize(10); doc.text(`Período: ${inicio||'-'} a ${fim||'-'} • Igreja: ${ig||'Todas'}`, 40, 58);
+
+  doc.autoTable({ startY: 70, head: [['Data','Igreja','Tipo','Categoria','Forma','Descrição','Valor']], body: table, styles:{fontSize:9}, headStyles:{fillColor:[17,24,39]} });
+
+  let y = doc.lastAutoTable.finalY + 18;
+  doc.setFontSize(12); doc.text('Resumo', 40, y); y+=10; doc.setFontSize(10);
+  doc.text(`Saldo anterior: ${fmtBRL(saldoAnterior)}`, 40, y); y+=14;
+  doc.text(`Entradas: ${fmtBRL(entradas)}`, 40, y); y+=14;
+  doc.text(`Saídas: ${fmtBRL(saidas)}`, 40, y); y+=14;
+  doc.text(`Saldo atual: ${fmtBRL(saldoAtual)}`, 40, y);
+
+  doc.save('Livro_Caixa.pdf');
+};
+
+// ==== Backup JSON (export/import)
+$('btnBackupExport').onclick = ()=>{
+  const data = {
+    categories: cats,
+    closures: fechados,
+    transactions: transacoes
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'backup_irv.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+$('backupImport').addEventListener('change', async (ev)=>{
+  const file = ev.target.files[0]; if(!file) return;
+  try{
+    const txt = await file.text();
+    const data = JSON.parse(txt);
+    if(localMode || !currentUser){
+      if(data.categories) cats = data.categories;
+      if(data.closures) fechados = data.closures;
+      if(data.transactions) transacoes = data.transactions;
+      localStorage.setItem('irv_local_cats', JSON.stringify(cats));
+      localStorage.setItem('irv_local_closures', JSON.stringify(fechados));
+      localStorage.setItem('irv_local_tx', JSON.stringify(transacoes));
+      render();
+      alert('Backup restaurado no modo local.');
+    }else{
+      // grava no Firestore
+      const uid=currentUser.uid;
+      const writes=[];
+      if(data.categories){
+        writes.push(db.collection('irv_users').doc(uid).collection('meta').doc('categories').set({entrada:data.categories.entrada||[],saida:data.categories.saida||[]},{merge:true}));
+      }
+      if(data.closures){
+        for(const k of Object.keys(data.closures)){
+          writes.push(db.collection('irv_users').doc(uid).collection('closures').doc(k).set({closed:!!data.closures[k]}));
+        }
+      }
+      if(Array.isArray(data.transactions)){
+        for(const t of data.transactions){
+          const t2 = {...t}; delete t2.id; // novo id
+          writes.push(db.collection('irv_users').doc(uid).collection('transactions').add(t2));
+        }
+      }
+      await Promise.all(writes);
+      alert('Backup importado para sua conta.');
+    }
+  }catch(err){
+    alert('Falha ao importar: '+(err.message||err));
+  }finally{
+    ev.target.value='';
+  }
+});
+
+// ==== Local storage helpers
+function loadLocal(){
+  try{ const lc=localStorage.getItem('irv_local_cats'); if(lc) cats=JSON.parse(lc); }catch(_){}
+  try{ const lc2=localStorage.getItem('irv_local_closures'); if(lc2) fechados=JSON.parse(lc2); }catch(_){}
+  try{ transacoes = JSON.parse(localStorage.getItem('irv_local_tx')) || []; }catch(_){ transacoes=[]; }
+  render();
 }
 
 // Start
 (function(){
-  const started = initFirebase();
-  const d=$('diagBox');
-  const lines = [
-    'SDK Firebase: '+(started?'OK':'FALHOU'),
-    'Domínio atual: '+location.host,
-    'Se aparecer auth/api-key-not-valid:',
-    ' - Use a config EXATA do App Web (Project settings > General > Your apps).',
-    ' - Em Google Cloud Console, deixe a API key sem restrição ou inclua https://*.github.io/*',
-    ' - Em Authentication > Authorized domains, inclua seuusuario.github.io'
-  ];
-  if(d) d.textContent += '\\n'+lines.join('\\n');
+  initFirebase();
+  const now = new Date().toISOString().slice(0,7);
+  $('competencia').value = now;
+  $('fMes').value = now;
 })();
 </script>
 </body>
