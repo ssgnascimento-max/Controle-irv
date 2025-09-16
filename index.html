@@ -7,103 +7,236 @@
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   body{background:linear-gradient(135deg,#0f172a 0%,#111827 60%,#0b1220 100%);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
-  .login-card{background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border:1px solid rgba(226,232,240,.7);border-radius:20px;box-shadow:0 20px 40px rgba(0,0,0,.25)}
-  .brand{letter-spacing:.5px}
-  .btn{padding:.8rem 1rem;border-radius:12px;font-weight:600}
+  .card{background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border:1px solid rgba(226,232,240,.7);border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.2)}
+  .btn{padding:.7rem 1rem;border-radius:12px;font-weight:600}
   .btn-primary{background:#111827;color:#fff}
   .btn-min{background:#fff;border:1px solid #e5e7eb}
-  .tab{flex:1;padding:.75rem;border-bottom:2px solid transparent;text-align:center;font-weight:700}
+  .tab{flex:1;padding:.6rem;border-bottom:2px solid transparent;text-align:center;font-weight:700}
   .tab.active{border-color:#111827;color:#111827}
   .hint{font-size:.8rem;color:#64748b}
 </style>
-<!-- Firebase compat SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body class="min-h-screen">
 
-<!-- GATE -->
+<!-- LOGIN -->
 <div id="authGate" class="fixed inset-0 z-50 flex items-center justify-center p-5">
   <div class="absolute inset-0 opacity-[.15] bg-[radial-gradient(circle_at_20%_20%,#22d3ee,transparent_35%),radial-gradient(circle_at_80%_30%,#34d399,transparent_35%),radial-gradient(circle_at_50%_80%,#60a5fa,transparent_40%)]"></div>
-  <div class="relative login-card w-full max-w-md p-6">
-    <div class="text-center mb-5">
+  <div class="relative card w-full max-w-md p-6">
+    <div class="text-center mb-4">
       <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white font-bold">IRV</div>
-      <h1 class="brand mt-3 text-xl font-semibold text-slate-900">Controle Financeiro IRV</h1>
+      <h1 class="mt-3 text-xl font-semibold text-slate-900">Controle Financeiro IRV</h1>
       <p class="hint">Acesse com sua conta ou use o modo local</p>
     </div>
     <div class="flex mb-4 border-b border-slate-200">
-      <button id="tabLogin"  class="tab active">Entrar</button>
+      <button id="tabLogin" class="tab active">Entrar</button>
       <button id="tabSignup" class="tab">Criar conta</button>
     </div>
     <form id="authForm" class="grid gap-3">
-      <div>
-        <label class="text-xs text-slate-500">E-mail</label>
-        <input id="authEmail" type="email" placeholder="email@exemplo.com"
-               class="mt-1 p-3 h-11 w-full text-sm border rounded-xl" required>
-      </div>
-      <div>
-        <label class="text-xs text-slate-500">Senha</label>
-        <input id="authPass" type="password" placeholder="Mínimo 6 caracteres"
-               class="mt-1 p-3 h-11 w-full text-sm border rounded-xl">
-      </div>
-      <div id="signupExtras" class="hidden">
-        <label class="text-xs text-slate-500">Confirmar senha</label>
-        <input id="authPass2" type="password" placeholder="Repita a senha"
-               class="mt-1 p-3 h-11 w-full text-sm border rounded-xl">
-      </div>
-      <button id="submitAuth" class="btn btn-primary w-full mt-2" type="submit">Entrar</button>
+      <input id="authEmail" type="email" placeholder="email@exemplo.com" class="p-3 h-11 text-sm border rounded-xl" required>
+      <input id="authPass" type="password" placeholder="Senha (mín. 6)" class="p-3 h-11 text-sm border rounded-xl">
+      <input id="authPass2" type="password" placeholder="Confirmar senha" class="p-3 h-11 text-sm border rounded-xl hidden">
+      <button id="submitAuth" class="btn btn-primary w-full" type="submit">Entrar</button>
       <div class="grid grid-cols-2 gap-2">
         <button id="btnGoogle" type="button" class="btn btn-min">Google</button>
         <button id="btnLocal"  type="button" class="btn btn-min">Modo local</button>
       </div>
       <div id="authMsg" class="text-xs text-rose-600 min-h-[1.25rem] text-center"></div>
       <details class="text-xs text-slate-600">
-        <summary class="cursor-pointer">Diagnóstico</summary>
+        <summary>Diagnóstico</summary>
         <pre id="diagBox" class="mt-1 whitespace-pre-wrap"></pre>
       </details>
     </form>
-    <p class="hint mt-4 text-center">
-      Dica: se o Google bloquear popup, o app tenta o <strong>redirect</strong> automaticamente.
-    </p>
   </div>
 </div>
-<!-- APP raiz mínima -->
-<div id="appRoot" class="max-w-5xl mx-auto p-4 hidden">
-  <h1 class="text-xl font-bold mb-4">✅ Logado! Aqui ficará a aplicação completa</h1>
+
+<!-- APP -->
+<div id="appRoot" class="max-w-6xl mx-auto p-4 hidden">
+  <header class="mb-4 card p-4 flex items-center justify-between">
+    <h2 class="text-xl font-semibold">Controle Financeiro IRV</h2>
+    <div class="flex items-center gap-2">
+      <span id="userEmail" class="text-xs text-slate-600 hidden"></span>
+      <button id="btnSair" class="btn btn-min hidden">Sair</button>
+    </div>
+  </header>
+
+  <section class="grid md:grid-cols-2 gap-4 mb-4">
+    <div class="card p-3">
+      <h3 class="font-medium mb-2">Entradas x Saídas</h3>
+      <div class="h-[160px]"><canvas id="graficoBarras"></canvas></div>
+    </div>
+    <div class="card p-3">
+      <h3 class="font-medium mb-2">Distribuição por Categoria</h3>
+      <div class="h-[160px]"><canvas id="graficoPizza"></canvas></div>
+    </div>
+  </section>
+
+  <section class="card p-4 mb-4">
+    <form id="form" class="grid md:grid-cols-6 gap-3 items-end">
+      <div class="md:col-span-2">
+        <label class="text-xs text-slate-500">Igreja</label>
+        <select id="igreja" class="p-2 h-10 text-sm border rounded-xl w-full">
+          <option>Alagoinhas</option><option>Entre Rios</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-slate-500">Data</label>
+        <input type="date" id="data" class="p-2 h-10 text-sm border rounded-xl w-full">
+      </div>
+      <div>
+        <label class="text-xs text-slate-500">Tipo</label>
+        <div class="flex rounded-xl overflow-hidden border">
+          <button type="button" id="tabEntrada" class="flex-1 px-3 h-10 text-sm bg-slate-100">Entrada</button>
+          <button type="button" id="tabSaida" class="flex-1 px-3 h-10 text-sm">Saída</button>
+        </div>
+      </div>
+
+      <div class="md:col-span-3" id="boxCatEntrada">
+        <label class="text-xs text-slate-500">Categoria de Entrada</label>
+        <div class="flex gap-2">
+          <select id="categoriaEntrada" class="flex-1 p-2 h-10 text-sm border rounded-xl"></select>
+          <button type="button" id="addCategoriaEntrada" class="btn btn-min">+ Entrada</button>
+        </div>
+      </div>
+      <div class="md:col-span-3 hidden" id="boxCatSaida">
+        <label class="text-xs text-slate-500">Categoria de Saída</label>
+        <div class="flex gap-2">
+          <select id="categoriaSaida" class="flex-1 p-2 h-10 text-sm border rounded-xl"></select>
+          <button type="button" id="addCategoriaSaida" class="btn btn-min">+ Saída</button>
+        </div>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="text-xs text-slate-500">Descrição</label>
+        <input type="text" id="descricao" maxlength="120" class="p-2 h-10 text-sm border rounded-xl w-full">
+      </div>
+      <div>
+        <label class="text-xs text-slate-500">Valor</label>
+        <input type="number" id="valor" step="0.01" class="p-2 h-10 text-sm border rounded-xl w-full">
+      </div>
+      <div>
+        <label class="text-xs text-slate-500">Forma</label>
+        <select id="forma" class="p-2 h-10 text-sm border rounded-xl w-full">
+          <option>Dinheiro</option><option>Pix</option>
+        </select>
+      </div>
+      <div class="md:col-span-6 flex gap-2">
+        <button class="btn btn-primary" type="submit">Adicionar</button>
+        <button class="btn btn-min" type="button" id="limparForm">Limpar</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card p-4">
+    <div class="grid md:grid-cols-5 gap-2 mb-3 items-end">
+      <select id="filtroIgreja" class="p-2 h-10 text-sm border rounded-xl">
+        <option value="">Todas as Igrejas</option>
+        <option>Alagoinhas</option><option>Entre Rios</option>
+      </select>
+      <select id="filtroTipo" class="p-2 h-10 text-sm border rounded-xl">
+        <option value="">Todos os Tipos</option>
+        <option value="entrada">Entrada</option><option value="saida">Saída</option>
+      </select>
+      <select id="filtroCategoria" class="p-2 h-10 text-sm border rounded-xl">
+        <option value="">Todas Categorias</option>
+      </select>
+      <input id="pesquisa" type="text" placeholder="Pesquisar..." class="p-2 h-10 text-sm border rounded-xl">
+      <button id="aplicarFiltros" class="btn btn-min">Filtrar</button>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="text-xs uppercase tracking-wide text-slate-500 border-b">
+            <th class="p-2">Data</th><th class="p-2">Igreja</th><th class="p-2">Categoria</th>
+            <th class="p-2">Tipo</th><th class="p-2">Forma</th><th class="p-2">Valor</th><th class="p-2">Descrição</th>
+          </tr>
+        </thead>
+        <tbody id="lista" class="text-sm"></tbody>
+      </table>
+    </div>
+  </section>
 </div>
 
 <script>
-// Firebase config
-const cfg = {
-  apiKey: "AIzaSyAwcOnl2340CVBpW40ZRMlWwh8Gy0p8UJ8",
-  authDomain: "controle-finaceiro-2e6c7.firebaseapp.com",
-  projectId: "controle-finaceiro-2e6c7",
-  storageBucket: "controle-finaceiro-2e6c7.appspot.com",
-  messagingSenderId: "63325455070",
-  appId: "1:63325455070:web:ca2fb5b1e28fc4b8cdb84f"
-};
+// --- Firebase config (o seu) ---
+const cfg={apiKey:"AIzaSyAwcOnl2340CVBpW40ZRMlWwh8Gy0p8UJ8",authDomain:"controle-finaceiro-2e6c7.firebaseapp.com",projectId:"controle-finaceiro-2e6c7",storageBucket:"controle-finaceiro-2e6c7.appspot.com",messagingSenderId:"63325455070",appId:"1:63325455070:web:ca2fb5b1e28fc4b8cdb84f"};
+
+// --- Helpers/estado ---
 const $=id=>document.getElementById(id);
 const gate=$('authGate'), app=$('appRoot'), msg=$('authMsg'), diag=$('diagBox');
-const tabLogin=$('tabLogin'), tabSignup=$('tabSignup'), pass2=$('authPass2'), submitAuth=$('submitAuth'), signupExtras=$('signupExtras');
 let mode='login';
-function setMode(m){mode=m;if(m==='login'){tabLogin.classList.add('active');tabSignup.classList.remove('active');signupExtras.classList.add('hidden');submitAuth.textContent='Entrar';}else{tabSignup.classList.add('active');tabLogin.classList.remove('active');signupExtras.classList.remove('hidden');submitAuth.textContent='Criar conta';}msg.textContent='';}
-tabLogin.onclick=()=>setMode('login');tabSignup.onclick=()=>setMode('signup');
-let auth=null;
-function openApp(){gate.classList.add('hidden');app.classList.remove('hidden');}
-function initFirebase(){
-  try{firebase.initializeApp(cfg);auth=firebase.auth();
-    auth.onAuthStateChanged(user=>{if(user){openApp();}else{app.classList.add('hidden');gate.classList.remove('hidden');}});
-    $('authForm').onsubmit=async e=>{e.preventDefault();const email=$('authEmail').value.trim(),pass=$('authPass').value;
-      try{if(mode==='login'){await auth.signInWithEmailAndPassword(email,pass);}else{const p2=$('authPass2').value.trim();if(pass.length<6)return msg.textContent='Senha fraca (mín. 6).';if(pass!==p2)return msg.textContent='As senhas não conferem.';await auth.createUserWithEmailAndPassword(email,pass);}}
-      catch(err){const map={"auth/operation-not-allowed":"Ative Email/Password no Firebase.","auth/invalid-email":"E-mail inválido.","auth/email-already-in-use":"E-mail já cadastrado.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Usuário não encontrado."};msg.textContent=map[err.code]||(err.message||'Erro');}};
-    $('btnGoogle').onclick=async()=>{const prov=new firebase.auth.GoogleAuthProvider();try{await auth.signInWithPopup(prov);}catch(e){try{await auth.signInWithRedirect(prov);}catch(e2){msg.textContent=e2.message||'Falha no Google.';}}};
-    $('btnLocal').onclick=()=>openApp();
-    return true;
-  }catch(e){msg.textContent='Falha Firebase';diag.textContent='Erro: '+(e.message||e);return false;}
+$('tabLogin').onclick=()=>{mode='login';$('tabLogin').classList.add('active');$('tabSignup').classList.remove('active');$('authPass2').classList.add('hidden');$('submitAuth').textContent='Entrar';msg.textContent='';};
+$('tabSignup').onclick=()=>{mode='signup';$('tabSignup').classList.add('active');$('tabLogin').classList.remove('active');$('authPass2').classList.remove('hidden');$('submitAuth').textContent='Criar conta';msg.textContent='';};
+
+const KEY_TX='irv_tx', KEY_CAT_E='irv_cat_e', KEY_CAT_S='irv_cat_s';
+let transacoes=JSON.parse(localStorage.getItem(KEY_TX)||'[]');
+let categoriasEntrada=JSON.parse(localStorage.getItem(KEY_CAT_E)||'["Dízimo","Oferta","Doações"]');
+let categoriasSaida=JSON.parse(localStorage.getItem(KEY_CAT_S)||'["Despesa Fixa","Evento","Missões"]');
+
+function salvar(){ localStorage.setItem(KEY_TX,JSON.stringify(transacoes)); localStorage.setItem(KEY_CAT_E,JSON.stringify(categoriasEntrada)); localStorage.setItem(KEY_CAT_S,JSON.stringify(categoriasSaida)); }
+
+function populate(select, arr){ select.innerHTML=''; arr.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;select.appendChild(o);}); }
+function atualizarCategorias(){ populate($('categoriaEntrada'),categoriasEntrada); populate($('categoriaSaida'),categoriasSaida); const all=[...new Set([...categoriasEntrada,...categoriasSaida])].sort(); populate($('filtroCategoria'),['',...all]); $('filtroCategoria').options[0].text='Todas Categorias'; }
+function setTipo(t){ if(t==='entrada'){ $('tabEntrada').classList.add('bg-slate-100'); $('tabSaida').classList.remove('bg-slate-100'); $('boxCatEntrada').classList.remove('hidden'); $('boxCatSaida').classList.add('hidden'); } else { $('tabSaida').classList.add('bg-slate-100'); $('tabEntrada').classList.remove('bg-slate-100'); $('boxCatSaida').classList.remove('hidden'); $('boxCatEntrada').classList.add('hidden'); } }
+$('tabEntrada').onclick=()=>setTipo('entrada'); $('tabSaida').onclick=()=>setTipo('saida');
+
+// Lista/Gráficos
+function toBR(d){ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+function render(){
+  const fI=$('filtroIgreja').value, fT=$('filtroTipo').value, fC=$('filtroCategoria').value, q=($('pesquisa').value||'').toLowerCase();
+  const lista=$('lista'); lista.innerHTML='';
+  const dados = transacoes.filter(t=> (!fI||t.igreja===fI) && (!fT||t.tipo===fT) && (!fC||t.categoria===fC) && (!q|| (t.descricao||'').toLowerCase().includes(q)));
+  dados.forEach(t=>{ const tr=document.createElement('tr'); tr.className='border-b'; tr.innerHTML=`<td class='p-2'>${toBR(t.data)}</td><td class='p-2'>${t.igreja}</td><td class='p-2'>${t.categoria}</td><td class='p-2'>${t.tipo==='entrada'?'Entrada':'Saída'}</td><td class='p-2'>${t.forma||'Dinheiro'}</td><td class='p-2'>R$ ${Number(t.valor||0).toFixed(2)}</td><td class='p-2'>${t.descricao||''}</td>`; lista.appendChild(tr); });
+  // gráficos
+  const e = dados.filter(t=>t.tipo==='entrada').reduce((a,b)=>a+(+b.valor||0),0);
+  const s = dados.filter(t=>t.tipo==='saida').reduce((a,b)=>a+(+b.valor||0),0);
+  try{ window.g1 && window.g1.destroy(); }catch(_){}
+  window.g1 = new Chart(document.getElementById('graficoBarras'),{type:'bar',data:{labels:['Entradas','Saídas'],datasets:[{label:'Valores',data:[e,s]}]},options:{responsive:true,maintainAspectRatio:false}});
+  const porCat={}; dados.forEach(t=>porCat[t.categoria]=(porCat[t.categoria]||0)+(+t.valor||0));
+  try{ window.g2 && window.g2.destroy(); }catch(_){}
+  window.g2 = new Chart(document.getElementById('graficoPizza'),{type:'doughnut',data:{labels:Object.keys(porCat),datasets:[{data:Object.values(porCat)}]},options:{responsive:true,maintainAspectRatio:false}});
 }
-initFirebase();
+
+// Form
+$('form').addEventListener('submit', (e)=>{
+  if(e.target.id!=='form') return; e.preventDefault();
+  const tipo = $('boxCatSaida').classList.contains('hidden') ? 'entrada':'saida';
+  const cat  = tipo==='entrada' ? $('categoriaEntrada').value : $('categoriaSaida').value;
+  const t={ igreja:$('igreja').value, data:$('data').value, tipo, categoria:cat, forma:$('forma').value, descricao:$('descricao').value.trim(), valor:parseFloat($('valor').value||'0') };
+  if(!t.data||!t.categoria||!(isFinite(t.valor)&&t.valor>0)) return alert('Preencha data, categoria e valor válido.');
+  transacoes.push(t); salvar(); e.target.reset(); setTipo('entrada'); render();
+});
+$('limparForm').onclick=()=>$('form').reset();
+$('addCategoriaEntrada').onclick=()=>{const v=prompt('Nova categoria de Entrada:'); if(v){ categoriasEntrada=[...new Set([...categoriasEntrada,v.trim()])]; salvar(); atualizarCategorias(); }};
+$('addCategoriaSaida').onclick=()=>{const v=prompt('Nova categoria de Saída:'); if(v){ categoriasSaida=[...new Set([...categoriasSaida,v.trim()])]; salvar(); atualizarCategorias(); }};
+$('aplicarFiltros').onclick=()=>render(); ['filtroIgreja','filtroTipo','filtroCategoria','pesquisa'].forEach(id=>$(id).addEventListener('input',render));
+
+// Inicial
+atualizarCategorias(); setTipo('entrada'); render();
+
+// -------- Autenticação Firebase --------
+firebase.initializeApp(cfg);
+const auth=firebase.auth();
+auth.onAuthStateChanged(user=>{
+  if(user){ gate.classList.add('hidden'); app.classList.remove('hidden'); $('userEmail').textContent=user.email||''; $('userEmail').classList.remove('hidden'); $('btnSair').classList.remove('hidden'); }
+  else{ app.classList.add('hidden'); gate.classList.remove('hidden'); }
+});
+$('btnSair').onclick=()=>auth.signOut();
+
+$('authForm').addEventListener('submit', async e=>{
+  e.preventDefault(); const email=$('authEmail').value.trim(), pass=$('authPass').value;
+  try{ if(mode==='login'){ await auth.signInWithEmailAndPassword(email,pass); } else { const p2=$('authPass2').value.trim(); if(pass.length<6) return msg.textContent='Senha fraca (mín. 6).'; if(pass!==p2) return msg.textContent='As senhas não conferem.'; await auth.createUserWithEmailAndPassword(email,pass); } }
+  catch(err){ const map={"auth/operation-not-allowed":"Ative Email/Password no Firebase.","auth/invalid-email":"E-mail inválido.","auth/email-already-in-use":"E-mail já cadastrado.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Usuário não encontrado."}; msg.textContent=map[err.code]||(err.message||'Falha ao autenticar.'); }
+});
+$('btnGoogle').onclick=async()=>{ const prov=new firebase.auth.GoogleAuthProvider(); try{ await auth.signInWithPopup(prov); } catch(e){ try{ await auth.signInWithRedirect(prov); } catch(e2){ msg.textContent=e2.message||'Falha no Google.'; } } };
+$('btnLocal').onclick=()=>{ gate.classList.add('hidden'); app.classList.remove('hidden'); };
+diag.textContent='Domínio atual: '+location.host+'\\nSe login falhar, adicione este domínio em Authentication → Authorized domains.';
 </script>
 </body>
 </html>
