@@ -17,7 +17,8 @@
     :root { --bg:#0b1220; --card:#0f172a; --muted:#94a3b8; --text:#e5e7eb; --border:#1f2937; --accent:#111827; }
     body{background:linear-gradient(135deg,#0f172a 0%,#0b1220 70%); color:var(--text); font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; margin:0}
     .card{background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,.25)}
-    .btn{padding:.6rem .9rem;border-radius:.9rem;font-weight:600;cursor:pointer}
+    .btn{padding:.6rem .9rem;border-radius:.9rem;font-weight:600;cursor:pointer; transition:.15s}
+    .btn:hover{transform:translateY(-1px)} .btn:active{transform:translateY(0)}
     .btn-min{background:transparent;color:var(--text);border:1px solid var(--border)}
     .btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent)}
     .btn-green{background:#065f46;color:#ecfdf5;border:1px solid #064e3b}
@@ -138,7 +139,7 @@
           <div><label class="text-xs" style="color:var(--muted)">Fim</label><input type="date" id="pdfFim"></div>
           <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="pdfIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
         </div>
-        <div class="text-xs mt-2" style="color:var(--muted)">O PDF inclui resumo: <em>Saldo anterior, Entradas, Saídas e Saldo atual</em> (lado direito).</div>
+        <div class="text-xs mt-2" style="color:var(--muted)">PDF com tema minimalista e colorido, incluindo resumo à direita.</div>
       </div>
     </section>
 
@@ -163,7 +164,6 @@
           </div>
         </div>
 
-        <div><label class="text-xs" style="color:var(--muted)">Forma</label><select id="forma"><option>Dinheiro</option><option>Pix</option></select></div>
         <div class="md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="descricao" placeholder="Opcional"></div>
         <div><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="valor" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
 
@@ -193,7 +193,7 @@
           <thead>
             <tr class="text-xs uppercase tracking-wide border-b" style="color:var(--muted);border-color:var(--border)">
               <th class="p-2">Data</th><th class="p-2">Igreja</th><th class="p-2">Tipo</th>
-              <th class="p-2">Categoria</th><th class="p-2">Forma</th><th class="p-2">Descrição</th><th class="p-2">Valor</th><th class="p-2 text-right">Ações</th>
+              <th class="p-2">Categoria</th><th class="p-2">Descrição</th><th class="p-2">Valor</th><th class="p-2 text-right">Ações</th>
             </tr>
           </thead>
           <tbody id="lista" class="text-sm"></tbody>
@@ -220,7 +220,6 @@
           <div class="flex gap-2"><select id="editCategoria" class="flex-1"></select><button type="button" id="editAddCategoria" class="btn btn-min">+ Categoria</button></div>
         </div>
 
-        <div><label class="text-xs" style="color:var(--muted)">Forma</label><select id="editForma"><option>Dinheiro</option><option>Pix</option></select></div>
         <div class="md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="editDescricao" placeholder="Opcional"></div>
         <div><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="editValor" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
 
@@ -249,9 +248,10 @@ function toggleTheme(){ const isLight=document.body.classList.contains('theme-li
 
 /* ===== Helpers ===== */
 const $ = (id)=>document.getElementById(id);
-const fmtBRL = (n)=> {
-  if(!isFinite(n)) return 'R$ 0,00';
-  return 'R$ '+Number(n||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const fmtBRL = (n) => {
+  const v = Number(n);
+  if (!isFinite(v)) return 'R$ 0,00';
+  return v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
 };
 const toBR = (d)=>{ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; };
 const ym = (d)=> d ? d.slice(0,7) : '';
@@ -434,7 +434,6 @@ document.getElementById('form').addEventListener('submit', async (e)=>{
     data: $('data').value,
     tipo: $('tipo').value,
     categoria: $('categoria').value,
-    forma: $('forma').value,
     descricao: ($('descricao').value||'').trim(),
     valor: parseValorBR($('valor').value||'0')
   };
@@ -471,7 +470,6 @@ function render(){
       <td class="p-2">${t.igreja||''}</td>
       <td class="p-2 td-strong">${t.tipo==='entrada'?'Entrada':'Saída'}</td>
       <td class="p-2 td-strong">${t.categoria||''}</td>
-      <td class="p-2">${t.forma||''}</td>
       <td class="p-2">${t.descricao||''}</td>
       <td class="p-2 td-strong">${fmtBRL(t.valor)}</td>
       <td class="p-2 text-right flex justify-end gap-2">
@@ -531,7 +529,6 @@ function showEdit(tx){
   document.getElementById('editTipo').value = tx.tipo || 'entrada';
   renderEditCategorias();
   document.getElementById('editCategoria').value = tx.categoria || '';
-  document.getElementById('editForma').value = tx.forma || 'Dinheiro';
   document.getElementById('editDescricao').value = tx.descricao || '';
   document.getElementById('editValor').value = (Number(tx.valor||0)).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   maskCurrencyInput(document.getElementById('editValor'));
@@ -558,7 +555,6 @@ editForm.addEventListener('submit', async (e)=>{
     data: document.getElementById('editData').value,
     tipo: document.getElementById('editTipo').value,
     categoria: document.getElementById('editCategoria').value,
-    forma: document.getElementById('editForma').value,
     descricao: (document.getElementById('editDescricao').value||'').trim(),
     valor: parseValorBR(document.getElementById('editValor').value||'0')
   };
@@ -572,7 +568,7 @@ editForm.addEventListener('submit', async (e)=>{
   }catch(err){ alert('Falha ao salvar edição: '+(err.message||err)); }
 });
 
-/* ===== Livro Caixa PDF ===== */
+/* ===== Livro Caixa PDF — minimalista e colorido ===== */
 $('btnPdf').onclick = ()=>{
   const { jsPDF } = window.jspdf;
   const inicio=$('pdfInicio').value, fim=$('pdfFim').value, ig=$('pdfIgreja').value;
@@ -583,24 +579,56 @@ $('btnPdf').onclick = ()=>{
   let entradas=0, saidas=0;
   const table = rows.map(t=>{
     if(t.tipo==='entrada') entradas+=(+t.valor||0); else saidas+=(+t.valor||0);
-    return [toBR(t.data), t.igreja, (t.tipo==='entrada'?'Entrada':'Saída'), t.categoria, t.forma||'', t.descricao||'', fmtBRL(t.valor)];
+    return [toBR(t.data), t.igreja, (t.tipo==='entrada'?'Entrada':'Saída'), t.categoria, t.descricao||'', fmtBRL(t.valor)];
   });
-  const saldoAnterior = 0;
+  const saldoAnterior = 0; // pode calcular se necessário
   const saldoAtual = saldoAnterior + entradas - saidas;
 
   const doc = new jsPDF({unit:'pt'});
-  doc.setFontSize(14); doc.text('Livro Caixa - Controle Financeiro IRV', 40, 40);
-  doc.setFontSize(10); doc.text(`Período: ${inicio||'-'} a ${fim||'-'} • Igreja: ${ig||'Todas'}`, 40, 58);
-  doc.autoTable({ startY: 70, head: [['Data','Igreja','Tipo','Categoria','Forma','Descrição','Valor']], body: table, styles:{fontSize:9}, headStyles:{fillColor:[17,24,39]} });
-
-  let y = doc.lastAutoTable.finalY + 18;
   const pageW = doc.internal.pageSize.getWidth();
-  const rightX = pageW - 220;
-  doc.setFontSize(12); doc.text('Resumo', rightX, y); y+=12; doc.setFontSize(10);
-  doc.text(`Saldo anterior: ${fmtBRL(saldoAnterior)}`, rightX, y); y+=14;
-  doc.text(`Entradas: ${fmtBRL(entradas)}`, rightX, y); y+=14;
-  doc.text(`Saídas: ${fmtBRL(saidas)}`, rightX, y); y+=14;
-  doc.text(`Saldo atual: ${fmtBRL(saldoAtual)}`, rightX, y);
+
+  // Cabeçalho com "faixa" colorida (gradiente fake com retângulos)
+  doc.setFillColor(39, 94, 254); doc.rect(0, 0, pageW, 18, 'F');
+  doc.setFillColor(99, 102, 241); doc.rect(0, 18, pageW, 14, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(12); doc.text('Livro Caixa — Controle Financeiro IRV', 28, 16);
+  doc.setFontSize(9);  doc.text(`Período: ${inicio||'-'} a ${fim||'-'}   •   Igreja: ${ig||'Todas'}`, 28, 30);
+
+  // Tabela
+  doc.setTextColor(33,37,41);
+  doc.autoTable({
+    startY: 52,
+    head: [['Data','Igreja','Tipo','Categoria','Descrição','Valor']],
+    body: table,
+    styles:{ fontSize:9, cellPadding:6, lineWidth:0.2, lineColor:[230,236,242] },
+    headStyles:{ fillColor:[15,23,42], textColor:[255,255,255], lineWidth:0 },
+    alternateRowStyles:{ fillColor:[248,250,252] },
+    theme:'grid',
+    columnStyles:{ 5:{ halign:'right' } }
+  });
+
+  // Resumo em cartões à direita
+  let y = doc.lastAutoTable.finalY + 16;
+  const rightX = pageW - 240;
+
+  const cards = [
+    { label:'Saldo anterior', value: fmtBRL(saldoAnterior), color:[226,232,240] },
+    { label:'Entradas',       value: fmtBRL(entradas),      color:[219,234,254] },
+    { label:'Saídas',         value: fmtBRL(saidas),        color:[254,226,226] },
+    { label:'Saldo atual',    value: fmtBRL(saldoAtual),    color:[220,252,231] }
+  ];
+
+  doc.setFontSize(12); doc.setTextColor(15,23,42); doc.text('Resumo', rightX, y); y += 8;
+
+  cards.forEach(c=>{
+    // cartão
+    doc.setFillColor(...c.color); doc.setDrawColor(230,236,242);
+    doc.roundedRect(rightX, y+6, 200, 36, 4, 4, 'FD');
+    doc.setTextColor(71,85,105); doc.setFontSize(9); doc.text(c.label, rightX+10, y+20);
+    doc.setTextColor(15,23,42); doc.setFontSize(12); doc.text(c.value, rightX+10, y+34);
+    y += 44;
+  });
+
   doc.save('Livro_Caixa.pdf');
 };
 
@@ -624,7 +652,12 @@ $('backupImport').addEventListener('change', async (ev)=>{
       for(const k of Object.keys(data.closures)){ writes.push(db.collection('irv_users').doc(uid).collection('closures').doc(k).set({closed:!!data.closures[k]})); }
     }
     if(Array.isArray(data.transactions)){
-      for(const t of data.transactions){ const t2 = {...t}; delete t2.id; writes.push(db.collection('irv_users').doc(uid).collection('transactions').add(t2)); }
+      for(const t of data.transactions){
+        const t2 = {...t}; delete t2.id;
+        // ignora "forma" caso exista em backups antigos
+        delete t2.forma;
+        writes.push(db.collection('irv_users').doc(uid).collection('transactions').add(t2));
+      }
     }
     await Promise.all(writes);
     alert('Backup importado para sua conta.');
