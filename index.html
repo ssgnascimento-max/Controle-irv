@@ -1,684 +1,182 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="light">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Controle Financeiro IRV</title>
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-  <!-- Firebase compat SDKs -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
   <style>
-    :root { --bg:#0b1220; --card:#0f172a; --muted:#94a3b8; --text:#e5e7eb; --border:#1f2937; --accent:#111827; }
-    body{background:linear-gradient(135deg,#0f172a 0%,#0b1220 70%); color:var(--text); font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; margin:0}
-    .card{background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,.25)}
-    .btn{padding:.6rem .9rem;border-radius:.9rem;font-weight:600;cursor:pointer; transition:.15s}
-    .btn:hover{transform:translateY(-1px)} .btn:active{transform:translateY(0)}
-    .btn-min{background:transparent;color:var(--text);border:1px solid var(--border)}
-    .btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent)}
-    .btn-green{background:#065f46;color:#ecfdf5;border:1px solid #064e3b}
-    .btn-red{background:#7f1d1d;color:#fee2e2;border:1px solid #7f1d1d}
-    .tab{padding:.55rem .85rem;border-radius:.6rem;border:1px solid var(--border);background:#0b1326;color:var(--muted)}
-    .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .chip{padding:.15rem .5rem;border-radius:999px;border:1px solid var(--border);color:var(--muted);font-size:.75rem}
-    input,select{background:#0b1326;border:1px solid var(--border);color:var(--text);border-radius:.6rem;height:2.4rem;padding:.4rem .6rem}
-    table th{color:var(--muted);font-weight:700;font-size:.75rem}
-    .td-strong{font-weight:700}
-    tbody tr.soft-row{background:rgba(255,255,255,.03); transition:background .12s}
-    tbody tr.soft-row:hover{background:rgba(255,255,255,.06)}
-    .err{color:#fca5a5}
-
-    /* Tema claro */
-    body.theme-light{background:linear-gradient(135deg,#f8fafc 0%,#ffffff 70%); color:#0f172a}
-    body.theme-light .card{background:#ffffff;border-color:#e6edf3;box-shadow:0 8px 20px rgba(2,6,23,.06)}
-    body.theme-light input, body.theme-light select{background:#fff;color:#0f172a;border-color:#e6edf3}
-    body.theme-light .tab{background:#fff;color:#0f172a;border-color:#e6edf3}
-    body.theme-light .tab.active{background:#0f172a;color:#fff}
-    body.theme-light .btn-min{color:#334155;border-color:#e6edf3;background:#fff}
-    body.theme-light tbody tr.soft-row{background:#fbfdff}
-    body.theme-light tbody tr.soft-row:hover{background:#eef2f7}
-    body.theme-light .chip{color:#475569;border-color:#e6edf3}
+    body { font-family: sans-serif; padding: 10px; }
+    .hidden { display: none; }
   </style>
 </head>
-<body class="min-h-screen">
-  <!-- AUTH (somente login) -->
-  <div id="authGate" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="absolute inset-0 opacity-[.14] bg-[radial-gradient(circle_at_20%_20%,#22d3ee,transparent_35%),radial-gradient(circle_at_80%_30%,#34d399,transparent_35%),radial-gradient(circle_at_50%_80%,#60a5fa,transparent_40%)]"></div>
-    <div class="relative card w-full max-w-md p-6">
-      <div class="text-center mb-4">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white font-bold">IRV</div>
-        <h1 class="mt-3 text-xl font-semibold">Controle Financeiro IRV</h1>
-        <p class="text-sm" style="color:var(--muted)">Cadastro desativado — entre com e-mail e senha criados pelo administrador</p>
-      </div>
-
-      <form id="authForm" class="grid gap-3">
-        <div>
-          <label class="text-xs" style="color:var(--muted)">E-mail</label>
-          <input id="authEmail" type="email" placeholder="email@exemplo.com" required />
-        </div>
-        <div>
-          <label class="text-xs" style="color:var(--muted)">Senha</label>
-          <input id="authPass" type="password" placeholder="Senha" required />
-        </div>
-
-        <button id="submitAuth" class="btn btn-primary w-full" type="submit">Entrar</button>
-        <div id="authMsg" class="err text-center min-h-[1.2rem]"></div>
-        <details class="text-xs" style="color:var(--muted)"><summary>Diagnóstico</summary><pre id="diagBox" class="mt-1 whitespace-pre-wrap"></pre></details>
-      </form>
-    </div>
+<body>
+  <!-- Tela de autenticação -->
+  <div id="authGate">
+    <h2>Login - Controle Financeiro IRV</h2>
+    <form id="authForm">
+      <input id="authEmail" type="email" placeholder="Email" required><br>
+      <input id="authPass" type="password" placeholder="Senha" required><br>
+      <button type="submit">Entrar</button>
+      <button id="btnCriar" type="button">Criar conta</button>
+      <button id="btnGoogle" type="button">Login com Google</button>
+      <button id="btnLocal" type="button">Modo Local</button>
+    </form>
+    <p id="authMsg"></p>
   </div>
 
-  <!-- APP -->
-  <div id="appRoot" class="max-w-7xl mx-auto p-4 hidden">
-    <header class="mb-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-black text-white font-bold">IRV</div>
-        <div>
-          <h1 class="text-xl font-semibold">Controle Financeiro IRV</h1>
-          <div class="text-xs" style="color:var(--muted)">Igrejas: Alagoinhas & Entre Rios • Valores em BRL</div>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <span id="userEmail" class="chip">…</span>
-        <button id="btnTema" class="btn btn-min" title="Alternar tema">Tema</button>
-        <button id="btnBackupExport" class="btn btn-min" title="Baixar backup JSON">Backup</button>
-        <label class="btn btn-min cursor-pointer">Importar<input type="file" id="backupImport" accept="application/json" class="hidden"></label>
-        <button id="btnSair" class="btn btn-min">Sair</button>
-      </div>
+  <!-- Aplicação completa -->
+  <div id="appRoot" class="hidden">
+    <header>
+      <h1>Controle Financeiro IRV</h1>
+      <button id="btnSair">Sair</button>
     </header>
 
-    <!-- Dashboards -->
-    <section class="grid md:grid-cols-3 gap-4 mb-4">
-      <div class="card p-3">
-        <div class="text-sm mb-2" style="color:var(--muted)">Entradas x Saídas (mês atual)</div>
-        <div class="h-[140px]"><canvas id="graficoBarras"></canvas></div>
-      </div>
-      <div class="card p-3">
-        <div class="text-sm mb-2" style="color:var(--muted)">Categorias (mês atual)</div>
-        <div class="h-[140px]"><canvas id="graficoPizza"></canvas></div>
-      </div>
-      <div class="card p-3">
-        <div class="text-sm mb-2" style="color:var(--muted)">Saldo (mês atual)</div>
-        <div class="h-[140px] flex items-center justify-center">
-          <div class="text-center">
-            <div class="text-3xl font-bold" id="saldoAtual">R$ 0,00</div>
-            <div class="text-xs" id="resumoMini" style="color:var(--muted)">E: R$ 0,00 • S: R$ 0,00</div>
-          </div>
-        </div>
-      </div>
+    <section id="dashboards">
+      <canvas id="graficoBarras"></canvas>
+      <canvas id="graficoPizza"></canvas>
     </section>
 
-    <!-- Fechamento + PDF -->
-    <section class="grid md:grid-cols-2 gap-4 mb-4">
-      <div class="card p-3">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="font-medium">Fechamento mensal</h3>
-          <span id="statusFech" class="chip">Mês atual: aberto</span>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-2">
-          <div><label class="text-xs" style="color:var(--muted)">Competência</label><input type="month" id="competencia"></div>
-          <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="competenciaIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
-        </div>
-        <div class="mt-3 flex gap-2"><button id="btnFechar" class="btn btn-primary">Fechar mês</button><button id="btnReabrir" class="btn btn-min">Reabrir</button></div>
-        <p class="text-xs mt-2" style="color:var(--muted)">Bloqueia lançamentos em meses anteriores. Para lançar no mês seguinte, feche o mês atual.</p>
-      </div>
-
-      <div class="card p-3">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="font-medium">Livro Caixa (PDF)</h3>
-          <button id="btnPdf" class="btn btn-min">Exportar PDF</button>
-        </div>
-        <div class="grid sm:grid-cols-3 gap-2">
-          <div><label class="text-xs" style="color:var(--muted)">Início</label><input type="date" id="pdfInicio"></div>
-          <div><label class="text-xs" style="color:var(--muted)">Fim</label><input type="date" id="pdfFim"></div>
-          <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="pdfIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
-        </div>
-        <div class="text-xs mt-2" style="color:var(--muted)">PDF com tema minimalista e colorido, incluindo resumo à direita.</div>
-      </div>
-    </section>
-
-    <!-- Form -->
-    <section class="card p-3 mb-4">
-      <div class="flex gap-2 mb-3">
-        <button id="tabEntrada" class="tab active" type="button">Entrada</button>
-        <button id="tabSaida" class="tab" type="button">Saída</button>
-        <span class="ml-auto text-xs" style="color:var(--muted)">Crie novas categorias com <span class="chip">+ Categoria</span></span>
-      </div>
-
-      <form id="form" class="grid md:grid-cols-8 gap-3 items-end">
-        <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="igreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
-        <div><label class="text-xs" style="color:var(--muted)">Data</label><input type="date" id="data" required></div>
-        <div><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
-
-        <div class="md:col-span-2">
-          <label class="text-xs" style="color:var(--muted)">Categoria</label>
-          <div class="flex gap-2">
-            <select id="categoria" class="flex-1"></select>
-            <button type="button" id="btnAddCategoria" class="btn btn-min">+ Categoria</button>
-          </div>
-        </div>
-
-        <div class="md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="descricao" placeholder="Opcional"></div>
-        <div><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="valor" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
-
-        <div class="md:col-span-8 flex gap-2">
-          <button class="btn btn-primary" type="submit">Adicionar</button>
-          <button class="btn btn-min" type="button" id="limparForm">Limpar</button>
-        </div>
+    <section>
+      <form id="form">
+        <label>Igreja</label>
+        <select id="igreja" required>
+          <option value="Alagoinhas">Alagoinhas</option>
+          <option value="Entre Rios">Entre Rios</option>
+        </select>
+        <label>Data</label>
+        <input type="date" id="data" required>
+        <label>Tipo</label>
+        <select id="tipo">
+          <option value="entrada">Entrada</option>
+          <option value="saida">Saída</option>
+        </select>
+        <label>Categoria</label>
+        <input type="text" id="categoria" required>
+        <label>Descrição</label>
+        <input type="text" id="descricao">
+        <label>Valor</label>
+        <input type="number" id="valor" step="0.01" required>
+        <button type="submit">Adicionar</button>
       </form>
     </section>
 
-    <!-- Filtros -->
-    <section class="card p-3 mb-3">
-      <div class="grid md:grid-cols-5 gap-2">
-        <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="fIgreja"><option value="">Todas</option><option>Alagoinhas</option><option>Entre Rios</option></select></div>
-        <div><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="fTipo"><option value="">Todos</option><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
-        <div><label class="text-xs" style="color:var(--muted)">Categoria</label><input id="fCategoria" placeholder="Ex.: Dízimo"></div>
-        <div><label class="text-xs" style="color:var(--muted)">Pesquisa</label><input id="fBusca" placeholder="Descrição…"></div>
-        <div><label class="text-xs" style="color:var(--muted)">Período</label><div class="flex gap-2"><input type="month" id="fMes" class="flex-1"><button id="btnLimparFiltros" class="btn btn-min" type="button">Limpar</button></div></div>
-      </div>
+    <section>
+      <h2>Transações</h2>
+      <table border="1">
+        <thead>
+          <tr>
+            <th>Data</th><th>Igreja</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Valor</th>
+          </tr>
+        </thead>
+        <tbody id="lista"></tbody>
+      </table>
     </section>
-
-    <!-- Lista -->
-    <section class="card p-3">
-      <h2 class="font-medium mb-2">Transações</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left">
-          <thead>
-            <tr class="text-xs uppercase tracking-wide border-b" style="color:var(--muted);border-color:var(--border)">
-              <th class="p-2">Data</th><th class="p-2">Igreja</th><th class="p-2">Tipo</th>
-              <th class="p-2">Categoria</th><th class="p-2">Descrição</th><th class="p-2">Valor</th><th class="p-2 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="lista" class="text-sm"></tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-  <!-- Edit Modal -->
-  <div id="editOverlay" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[60]">
-    <div class="card w-full max-w-2xl p-4">
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="text-lg font-semibold">Editar transação</h3>
-        <button id="editClose" class="btn btn-min">Fechar</button>
-      </div>
-      <form id="editForm" class="grid md:grid-cols-8 gap-3 items-end">
-        <input type="hidden" id="editId">
-        <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="editIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
-        <div><label class="text-xs" style="color:var(--muted)">Data</label><input type="date" id="editData" required></div>
-        <div><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="editTipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
-
-        <div class="md:col-span-2">
-          <label class="text-xs" style="color:var(--muted)">Categoria</label>
-          <div class="flex gap-2"><select id="editCategoria" class="flex-1"></select><button type="button" id="editAddCategoria" class="btn btn-min">+ Categoria</button></div>
-        </div>
-
-        <div class="md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="editDescricao" placeholder="Opcional"></div>
-        <div><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="editValor" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
-
-        <div class="md:col-span-8 flex gap-2"><button class="btn btn-primary" type="submit">Salvar alterações</button><button id="editCancel" class="btn btn-min" type="button">Cancelar</button></div>
-      </form>
-    </div>
   </div>
 
 <script>
-/* ===== Firebase (sua config) ===== */
-const cfg = {
-  apiKey: "AIzaSyBanW9qGTl2st7HdM-kkg-WClgY0gEE7co",
-  authDomain: "controle-fin-23a33.firebaseapp.com",
-  projectId: "controle-fin-23a33",
-  storageBucket: "controle-fin-23a33.appspot.com",
-  messagingSenderId: "762509187602",
-  appId: "1:762509187602:web:8fb033060a454007c616cb",
-  measurementId: "G-CHB6CVWZ7E"
+// Configuração Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAwcOnl2340CVBpW40ZRMlWwh8Gy0p8UJ8",
+  authDomain: "controle-finaceiro-2e6c7.firebaseapp.com",
+  projectId: "controle-finaceiro-2e6c7",
+  storageBucket: "controle-finaceiro-2e6c7.appspot.com",
+  messagingSenderId: "63325455070",
+  appId: "1:63325455070:web:ca2fb5b1e28fc4b8cdb84f"
 };
 
-/* ===== Tema ===== */
-const THEME_KEY='irv_theme';
-function applyTheme(t){ const b=document.body; if(t==='light'){ b.classList.add('theme-light'); } else { b.classList.remove('theme-light'); } try{ localStorage.setItem(THEME_KEY,t); }catch(_){} }
-function initTheme(){ try{ const saved=localStorage.getItem(THEME_KEY); if(saved){ applyTheme(saved); } }catch(_){} }
-function toggleTheme(){ const isLight=document.body.classList.contains('theme-light'); applyTheme(isLight?'dark':'light'); }
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
-/* ===== Helpers ===== */
-const $ = (id)=>document.getElementById(id);
-const fmtBRL = (n) => {
-  const v = Number(n);
-  if (!isFinite(v)) return 'R$ 0,00';
-  return v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-};
-const toBR = (d)=>{ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; };
-const ym = (d)=> d ? d.slice(0,7) : '';
+const authGate = document.getElementById("authGate");
+const appRoot = document.getElementById("appRoot");
+const msgBox = document.getElementById("authMsg");
 
-/* Parser robusto (ponto/vírgula, com/sem R$) */
-function parseValorBR(v){
-  if(v==null) return NaN;
-  let s = String(v).trim();
-  s = s.replace(/[^\d,.-]/g,'');
-  if(s.indexOf(',') >= 0){
-    s = s.replace(/\./g,'');
-    s = s.replace(/,/g,'.');
+auth.onAuthStateChanged(user => {
+  if (user) {
+    authGate.classList.add("hidden");
+    appRoot.classList.remove("hidden");
   } else {
-    const parts = s.split('.');
-    if(parts.length>2){
-      const last = parts.pop();
-      s = parts.join('') + '.' + last;
-    }
+    authGate.classList.remove("hidden");
+    appRoot.classList.add("hidden");
   }
-  return parseFloat(s);
-}
+});
 
-/* Máscara de moeda pt-BR */
-function maskCurrencyInput(el){
-  if(!el) return;
-  const fmt = (rawCents)=> (Number(rawCents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const onInput = ()=>{ let digits=(el.value||'').replace(/\D+/g,''); el.value = digits ? fmt(digits) : ''; };
-  el.addEventListener('input', onInput);
-  el.addEventListener('paste', (e)=>{ e.preventDefault(); const t=(e.clipboardData||window.clipboardData).getData('text'); const n=parseValorBR(t); if(!isNaN(n)) el.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); });
-  el.addEventListener('blur', ()=>{ const n=parseValorBR(el.value); if(!isNaN(n)) el.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); });
-}
-
-/* ===== Estado ===== */
-let auth=null, db=null, currentUser=null, unsubTx=null;
-let transacoes=[];
-let cats = { entrada:['Dízimo','Oferta','Doação'], saida:['Água','Luz','Som','Material'] };
-let fechados = {}; // { 'YYYY-MM|Igreja': true }
-
-/* ===== Auth ===== */
-const gate = $('authGate'), app = $('appRoot'), msg=$('authMsg'), diag=$('diagBox');
-
-/* ===== Firebase init ===== */
-function initFirebase(){
-  try{
-    firebase.initializeApp(cfg);
-    auth = firebase.auth();
-    db   = firebase.firestore();
-    try{ db.enablePersistence({synchronizeTabs:true}); }catch(_){}
-    if(diag) diag.textContent = ['Firebase init: OK','projectId: '+cfg.projectId,'authDomain: '+cfg.authDomain].join('\n');
-
-    auth.onAuthStateChanged(async user=>{
-      if(user){
-        currentUser=user;
-        $('userEmail').textContent=user.email||'';
-        openApp();
-        await loadUserData();
-      } else {
-        closeApp();
-      }
-    });
-
-    $('authForm').onsubmit = async (e)=>{
-      e.preventDefault();
-      const email=$('authEmail').value.trim(), pass=$('authPass').value;
-      try{
-        await auth.signInWithEmailAndPassword(email, pass);
-      }catch(err){
-        const map={"auth/operation-not-allowed":"Email/Password desativado no Firebase.","auth/invalid-email":"E-mail inválido.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Usuário não encontrado."};
-        msg.textContent = map[err.code] || (err.message||'Erro');
-      }
-    };
-
-    $('btnSair').onclick = ()=> auth.signOut();
-    $('btnTema').onclick = toggleTheme;
-
-    return true;
-  }catch(e){
-    if(msg) msg.textContent='Falha ao inicializar Firebase.';
-    if(diag) diag.textContent='Erro: '+(e.message||e);
-    return false;
+document.getElementById("authForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = document.getElementById("authEmail").value;
+  const pass = document.getElementById("authPass").value;
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch (err) {
+    msgBox.textContent = err.message;
   }
-}
-
-function openApp(){ gate.classList.add('hidden'); app.classList.remove('hidden'); renderCategorias(); bindTransacoes(); }
-function closeApp(){ app.classList.add('hidden'); gate.classList.remove('hidden'); if(unsubTx){unsubTx();unsubTx=null;} transacoes=[]; }
-
-/* ===== Dados do usuário ===== */
-async function loadUserData(){
-  try{
-    const doc = await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').get();
-    if(doc.exists){ const data=doc.data(); if(data.entrada) cats.entrada=data.entrada; if(data.saida) cats.saida=data.saida; }
-  }catch(_){}
-  try{
-    const snap = await db.collection('irv_users').doc(currentUser.uid).collection('closures').get();
-    fechados={}; snap.forEach(d=> fechados[d.id]=!!d.data().closed);
-  }catch(_){}
-  renderCategorias(); updateFechStatus();
-}
-
-/* ===== Categorias ===== */
-function renderCategorias(){
-  const tipo = $('tipo').value;
-  const el=$('categoria'); el.innerHTML='';
-  (cats[tipo]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); });
-}
-$('tipo').addEventListener('change', ()=>{
-  renderCategorias();
-  document.getElementById('tabEntrada').classList.toggle('active', $('tipo').value==='entrada');
-  document.getElementById('tabSaida').classList.toggle('active', $('tipo').value==='saida');
 });
-document.getElementById('tabEntrada').addEventListener('click', ()=>{ $('tipo').value='entrada'; document.getElementById('tabEntrada').classList.add('active'); document.getElementById('tabSaida').classList.remove('active'); renderCategorias(); });
-document.getElementById('tabSaida').addEventListener('click', ()=>{ $('tipo').value='saida'; document.getElementById('tabSaida').classList.add('active'); document.getElementById('tabEntrada').classList.remove('active'); renderCategorias(); });
 
-$('btnAddCategoria').onclick = async ()=>{
-  const tipo=$('tipo').value; const nome = prompt('Nova categoria de '+(tipo==='entrada'?'Entrada':'Saída')+':');
-  if(!nome) return;
-  if(!cats[tipo].includes(nome)) cats[tipo].push(nome);
-  renderCategorias();
-  await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true});
-};
+document.getElementById("btnCriar").addEventListener("click", async () => {
+  const email = document.getElementById("authEmail").value;
+  const pass = document.getElementById("authPass").value;
+  try {
+    await auth.createUserWithEmailAndPassword(email, pass);
+  } catch (err) {
+    msgBox.textContent = err.message;
+  }
+});
 
-/* ===== Fechamento ===== */
-function isMonthClosed(yyyyMM, igreja){ return !!fechados[`${yyyyMM}|${igreja}`]; }
-function setMonthClosed(yyyyMM, igreja, closed){ fechados[`${yyyyMM}|${igreja}`]=closed; }
-function updateFechStatus(){
-  const comp=$('competencia').value || new Date().toISOString().slice(0,7);
-  const ig=$('competenciaIgreja').value;
-  $('statusFech').textContent = `Mês ${comp} • ${ig} • ${isMonthClosed(comp,ig)?'FECHADO':'aberto'}`;
-}
-$('competencia').addEventListener('change', updateFechStatus);
-$('competenciaIgreja').addEventListener('change', updateFechStatus);
+document.getElementById("btnGoogle").addEventListener("click", async () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    msgBox.textContent = err.message;
+  }
+});
 
-$('btnFechar').onclick = async ()=>{
-  const comp=$('competencia').value || new Date().toISOString().slice(0,7);
-  const ig=$('competenciaIgreja').value;
-  setMonthClosed(comp,ig,true);
-  await db.collection('irv_users').doc(currentUser.uid).collection('closures').doc(`${comp}|${ig}`).set({closed:true,at:firebase.firestore.FieldValue.serverTimestamp()});
-  updateFechStatus(); alert('Mês fechado.');
-};
-$('btnReabrir').onclick = async ()=>{
-  const comp=$('competencia').value || new Date().toISOString().slice(0,7);
-  const ig=$('competenciaIgreja').value;
-  setMonthClosed(comp,ig,false);
-  await db.collection('irv_users').doc(currentUser.uid).collection('closures').doc(`${comp}|${ig}`).set({closed:false,at:firebase.firestore.FieldValue.serverTimestamp()});
-  updateFechStatus(); alert('Mês reaberto.');
-};
+document.getElementById("btnLocal").addEventListener("click", () => {
+  authGate.classList.add("hidden");
+  appRoot.classList.remove("hidden");
+});
 
-function canAddOn(dateStr, igreja){
-  if(!dateStr) return false;
-  const today = new Date();
-  const yyyyMM = ym(dateStr);
-  const cur = today.toISOString().slice(0,7);
-  if(yyyyMM < cur) return false;
-  const next = new Date(today.getFullYear(), today.getMonth()+1, 1).toISOString().slice(0,7);
-  if(yyyyMM === next && !isMonthClosed(cur, igreja)) return false;
-  return true;
-}
+document.getElementById("btnSair").addEventListener("click", () => {
+  auth.signOut();
+});
 
-/* ===== Firestore ===== */
-function txCol(){ return db.collection('irv_users').doc(currentUser.uid).collection('transactions'); }
-
-function bindTransacoes(){
-  if(unsubTx){ unsubTx(); unsubTx=null; }
-  unsubTx = txCol().orderBy('data').onSnapshot(snap=>{
-    transacoes=[]; let i=0;
-    snap.forEach(doc=> transacoes.push({ id:doc.id, _idx:i++, ...doc.data() }));
-    render();
-  }, err=>{
-    console.warn('[snapshot]', err.message);
-    const amsg = document.createElement('div'); amsg.className='err text-center mb-2'; amsg.textContent='Sem acesso ao Firestore (verifique as Rules).';
-    document.querySelector('#appRoot').prepend(amsg);
-  });
-}
-
-/* ===== Adicionar ===== */
-document.getElementById('form').addEventListener('submit', async (e)=>{
+// -------- Aplicação básica --------
+let transacoes = [];
+document.getElementById("form").addEventListener("submit", e => {
   e.preventDefault();
-  const tx = {
-    igreja: $('igreja').value,
-    data: $('data').value,
-    tipo: $('tipo').value,
-    categoria: $('categoria').value,
-    descricao: ($('descricao').value||'').trim(),
-    valor: parseValorBR($('valor').value||'0')
+  const t = {
+    igreja: document.getElementById("igreja").value,
+    data: document.getElementById("data").value,
+    tipo: document.getElementById("tipo").value,
+    categoria: document.getElementById("categoria").value,
+    descricao: document.getElementById("descricao").value,
+    valor: parseFloat(document.getElementById("valor").value)
   };
-  if(!tx.data) return alert('Informe a data.');
-  if(!canAddOn(tx.data, tx.igreja)) return alert('Lançamentos em meses anteriores são bloqueados.\nPara lançar no próximo mês, feche o mês atual.');
-  if(!tx.categoria) return alert('Informe a categoria.');
-  if(!(isFinite(tx.valor)&&tx.valor>0)) return alert('Informe um valor válido (>0).');
-  try{
-    await txCol().add({...tx, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-    e.target.reset();
-  }catch(err){ alert('Falha ao salvar: '+(err.message||err)); }
-});
-$('limparForm').onclick = ()=> $('form').reset();
-
-/* ===== Filtros ===== */
-['fIgreja','fTipo','fCategoria','fBusca','fMes'].forEach(id=> $(id).addEventListener('input', render));
-$('btnLimparFiltros').onclick = ()=>{ ['fIgreja','fTipo','fCategoria','fBusca','fMes'].forEach(id=> $(id).value=''); render(); };
-
-/* ===== Render ===== */
-function render(){
-  const tb=$('lista'); tb.innerHTML='';
-
-  const fi=$('fIgreja').value, ft=$('fTipo').value, fc=($('fCategoria').value||'').toLowerCase(), fb=($('fBusca').value||'').toLowerCase(), fm=$('fMes').value;
-  const rows = transacoes.filter(t=> (!fi || t.igreja===fi) && (!ft || t.tipo===ft) && (!fc || (t.categoria||'').toLowerCase().includes(fc)) && (!fb || (t.descricao||'').toLowerCase().includes(fb)) && (!fm || ym(t.data)===fm));
-
-  rows.sort((a,b)=> (a.data||'').localeCompare(b.data||''));
-  let totE=0, totS=0;
-
-  rows.forEach((t,idx)=>{
-    if(t.tipo==='entrada') totE += (+t.valor||0); else totS += (+t.valor||0);
-    const tr=document.createElement('tr'); tr.className='soft-row';
-    tr.innerHTML = `
-      <td class="p-2">${toBR(t.data)}</td>
-      <td class="p-2">${t.igreja||''}</td>
-      <td class="p-2 td-strong">${t.tipo==='entrada'?'Entrada':'Saída'}</td>
-      <td class="p-2 td-strong">${t.categoria||''}</td>
-      <td class="p-2">${t.descricao||''}</td>
-      <td class="p-2 td-strong">${fmtBRL(t.valor)}</td>
-      <td class="p-2 text-right flex justify-end gap-2">
-        <button class="btn btn-green text-xs" data-act="edit" data-id="${t.id||''}" data-idx="${idx}">Editar</button>
-        <button class="btn btn-red text-xs" data-act="del"  data-id="${t.id||''}" data-idx="${idx}">Excluir</button>
-      </td>`;
-    tb.appendChild(tr);
-  });
-
-  tb.querySelectorAll('button').forEach(btn=>{
-    btn.onclick = async ()=>{
-      const act=btn.getAttribute('data-act'); const id=btn.getAttribute('data-id'); const idx=Number(btn.getAttribute('data-idx'));
-      const t = rows[idx]; if(!t) return;
-      if(act==='del'){
-        if(!confirm('Excluir esta transação?')) return;
-        try{ await txCol().doc(id).delete(); }catch(err){ alert('Falha ao excluir: '+(err.message||err)); }
-      }else if(act==='edit'){
-        showEdit(t);
-      }
-    };
-  });
-
-  // dashboards mês atual
-  const hoje = new Date(); const cur = hoje.toISOString().slice(0,7);
-  const mRows = transacoes.filter(t=> ym(t.data)===cur);
-  const mE = mRows.filter(t=>t.tipo==='entrada').reduce((a,b)=>a+(+b.valor||0),0);
-  const mS = mRows.filter(t=>t.tipo==='saida').reduce((a,b)=>a+(+b.valor||0),0);
-  $('saldoAtual').textContent = fmtBRL(mE - mS);
-  $('resumoMini').textContent = `E: ${fmtBRL(mE)} • S: ${fmtBRL(mS)}`;
-
-  drawCharts(mE, mS, mRows);
-  updateFechStatus();
-}
-
-/* Charts */
-let g1,g2;
-function drawCharts(e,s,rows){
-  try{ g1&&g1.destroy(); }catch(_){}
-  g1=new Chart(document.getElementById('graficoBarras'),{type:'bar',data:{labels:['Entradas','Saídas'],datasets:[{label:'Valores',data:[e,s]}]},options:{responsive:true,maintainAspectRatio:false}});
-  const cat={}; rows.forEach(t=> cat[t.categoria]=(cat[t.categoria]||0)+(+t.valor||0));
-  try{ g2&&g2.destroy(); }catch(_){}
-  g2=new Chart(document.getElementById('graficoPizza'),{type:'doughnut',data:{labels:Object.keys(cat),datasets:[{data:Object.values(cat)}]},options:{responsive:true,maintainAspectRatio:false}});
-}
-
-/* ===== Edit Modal ===== */
-const editOverlay = document.getElementById('editOverlay');
-const editForm = document.getElementById('editForm');
-
-function renderEditCategorias(){
-  const t=document.getElementById('editTipo').value; const el=document.getElementById('editCategoria'); el.innerHTML='';
-  (cats[t]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); });
-}
-function showEdit(tx){
-  document.getElementById('editId').value = tx.id || '';
-  document.getElementById('editIgreja').value = tx.igreja || 'Alagoinhas';
-  document.getElementById('editData').value = tx.data || '';
-  document.getElementById('editTipo').value = tx.tipo || 'entrada';
-  renderEditCategorias();
-  document.getElementById('editCategoria').value = tx.categoria || '';
-  document.getElementById('editDescricao').value = tx.descricao || '';
-  document.getElementById('editValor').value = (Number(tx.valor||0)).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  maskCurrencyInput(document.getElementById('editValor'));
-  editOverlay.classList.remove('hidden'); editOverlay.classList.add('flex');
-}
-function hideEdit(){ editOverlay.classList.add('hidden'); editOverlay.classList.remove('flex'); }
-document.getElementById('editTipo').addEventListener('change', ()=>{ renderEditCategorias(); });
-document.getElementById('editAddCategoria').onclick = async () => {
-  const t = document.getElementById('editTipo').value;
-  const nome = prompt('Nova categoria de '+(t==='entrada'?'Entrada':'Saída')+':');
-  if(!nome) return;
-  if(!cats[t].includes(nome)) cats[t].push(nome);
-  renderEditCategorias(); document.getElementById('editCategoria').value = nome;
-  await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true});
-};
-document.getElementById('editClose').onclick = hideEdit;
-document.getElementById('editCancel').onclick = hideEdit;
-
-editForm.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const id = document.getElementById('editId').value;
-  const txUpd = {
-    igreja: document.getElementById('editIgreja').value,
-    data: document.getElementById('editData').value,
-    tipo: document.getElementById('editTipo').value,
-    categoria: document.getElementById('editCategoria').value,
-    descricao: (document.getElementById('editDescricao').value||'').trim(),
-    valor: parseValorBR(document.getElementById('editValor').value||'0')
-  };
-  if(!txUpd.data) return alert('Informe a data.');
-  if(!canAddOn(txUpd.data, txUpd.igreja)) return alert('Lançamentos em meses anteriores são bloqueados. Feche o mês atual para lançar no seguinte.');
-  if(!txUpd.categoria) return alert('Informe a categoria.');
-  if(!(isFinite(txUpd.valor)&&txUpd.valor>0)) return alert('Informe um valor válido (>0).');
-  try{
-    await txCol().doc(id).set(txUpd, {merge:true});
-    hideEdit();
-  }catch(err){ alert('Falha ao salvar edição: '+(err.message||err)); }
+  transacoes.push(t);
+  renderLista();
+  e.target.reset();
 });
 
-/* ===== Livro Caixa PDF — minimalista e colorido ===== */
-$('btnPdf').onclick = ()=>{
-  const { jsPDF } = window.jspdf;
-  const inicio=$('pdfInicio').value, fim=$('pdfFim').value, ig=$('pdfIgreja').value;
-  const rows = transacoes
-    .filter(t=> (!inicio || t.data>=inicio) && (!fim || t.data<=fim) && (!ig || t.igreja===ig))
-    .sort((a,b)=> (a.data||'').localeCompare(b.data||''));
-
-  let entradas=0, saidas=0;
-  const table = rows.map(t=>{
-    if(t.tipo==='entrada') entradas+=(+t.valor||0); else saidas+=(+t.valor||0);
-    return [toBR(t.data), t.igreja, (t.tipo==='entrada'?'Entrada':'Saída'), t.categoria, t.descricao||'', fmtBRL(t.valor)];
+function renderLista() {
+  const tbody = document.getElementById("lista");
+  tbody.innerHTML = "";
+  transacoes.forEach(t => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${t.data}</td><td>${t.igreja}</td><td>${t.tipo}</td><td>${t.categoria}</td><td>${t.descricao}</td><td>R$ ${t.valor.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
   });
-  const saldoAnterior = 0; // pode calcular se necessário
-  const saldoAtual = saldoAnterior + entradas - saidas;
-
-  const doc = new jsPDF({unit:'pt'});
-  const pageW = doc.internal.pageSize.getWidth();
-
-  // Cabeçalho com "faixa" colorida (gradiente fake com retângulos)
-  doc.setFillColor(39, 94, 254); doc.rect(0, 0, pageW, 18, 'F');
-  doc.setFillColor(99, 102, 241); doc.rect(0, 18, pageW, 14, 'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(12); doc.text('Livro Caixa — Controle Financeiro IRV', 28, 16);
-  doc.setFontSize(9);  doc.text(`Período: ${inicio||'-'} a ${fim||'-'}   •   Igreja: ${ig||'Todas'}`, 28, 30);
-
-  // Tabela
-  doc.setTextColor(33,37,41);
-  doc.autoTable({
-    startY: 52,
-    head: [['Data','Igreja','Tipo','Categoria','Descrição','Valor']],
-    body: table,
-    styles:{ fontSize:9, cellPadding:6, lineWidth:0.2, lineColor:[230,236,242] },
-    headStyles:{ fillColor:[15,23,42], textColor:[255,255,255], lineWidth:0 },
-    alternateRowStyles:{ fillColor:[248,250,252] },
-    theme:'grid',
-    columnStyles:{ 5:{ halign:'right' } }
-  });
-
-  // Resumo em cartões à direita
-  let y = doc.lastAutoTable.finalY + 16;
-  const rightX = pageW - 240;
-
-  const cards = [
-    { label:'Saldo anterior', value: fmtBRL(saldoAnterior), color:[226,232,240] },
-    { label:'Entradas',       value: fmtBRL(entradas),      color:[219,234,254] },
-    { label:'Saídas',         value: fmtBRL(saidas),        color:[254,226,226] },
-    { label:'Saldo atual',    value: fmtBRL(saldoAtual),    color:[220,252,231] }
-  ];
-
-  doc.setFontSize(12); doc.setTextColor(15,23,42); doc.text('Resumo', rightX, y); y += 8;
-
-  cards.forEach(c=>{
-    // cartão
-    doc.setFillColor(...c.color); doc.setDrawColor(230,236,242);
-    doc.roundedRect(rightX, y+6, 200, 36, 4, 4, 'FD');
-    doc.setTextColor(71,85,105); doc.setFontSize(9); doc.text(c.label, rightX+10, y+20);
-    doc.setTextColor(15,23,42); doc.setFontSize(12); doc.text(c.value, rightX+10, y+34);
-    y += 44;
-  });
-
-  doc.save('Livro_Caixa.pdf');
-};
-
-/* ===== Backup JSON (Firestore) ===== */
-$('btnBackupExport').onclick = ()=>{
-  const data = { categories: cats, closures: fechados, transactions: transacoes };
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup_irv.json'; a.click(); URL.revokeObjectURL(a.href);
-};
-$('backupImport').addEventListener('change', async (ev)=>{
-  const file = ev.target.files[0]; if(!file) return;
-  try{
-    const txt = await file.text();
-    const data = JSON.parse(txt);
-    const uid=currentUser.uid;
-    const writes=[];
-    if(data.categories){
-      writes.push(db.collection('irv_users').doc(uid).collection('meta').doc('categories').set({entrada:data.categories.entrada||[],saida:data.categories.saida||[]},{merge:true}));
-    }
-    if(data.closures){
-      for(const k of Object.keys(data.closures)){ writes.push(db.collection('irv_users').doc(uid).collection('closures').doc(k).set({closed:!!data.closures[k]})); }
-    }
-    if(Array.isArray(data.transactions)){
-      for(const t of data.transactions){
-        const t2 = {...t}; delete t2.id;
-        // ignora "forma" caso exista em backups antigos
-        delete t2.forma;
-        writes.push(db.collection('irv_users').doc(uid).collection('transactions').add(t2));
-      }
-    }
-    await Promise.all(writes);
-    alert('Backup importado para sua conta.');
-  }catch(err){ alert('Falha ao importar: '+(err.message||err)); }finally{ ev.target.value=''; }
-});
-
-/* ===== Startup ===== */
-(function(){
-  initTheme();
-  initFirebase();
-  const now = new Date().toISOString().slice(0,7);
-  $('competencia').value = now;
-  $('fMes').value = now;
-  // abas sincronizadas
-  const v = $('tipo').value;
-  document.getElementById('tabEntrada').classList.toggle('active', v==='entrada');
-  document.getElementById('tabSaida').classList.toggle('active', v==='saida');
-  renderCategorias();
-  // máscara de valor
-  maskCurrencyInput(document.getElementById('valor'));
-})();
+}
 </script>
 </body>
 </html>
