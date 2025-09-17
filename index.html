@@ -1,241 +1,236 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Controle Financeiro IRV</title>
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<!-- Firebase compat SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<style>
-  :root { --bg:#0b1220; --card:#0f172a; --muted:#94a3b8; --text:#e5e7eb; --border:#1f2937; --primary:#111827; }
-  body{background:linear-gradient(135deg,#0f172a 0%,#0b1220 70%); color:var(--text); font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
-  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:0 16px 40px rgba(0,0,0,.25)}
-  .btn{padding:.65rem .9rem;border-radius:.9rem;font-weight:600;transition:.15s}
-  .btn:active{transform:translateY(1px)}
-  .btn-primary{background:#111827;color:#fff;border:1px solid #111827}
-  .btn-min{background:transparent;color:#e5e7eb;border:1px solid var(--border)}
-  .btn-green{background:#065f46;color:#ecfdf5;border:1px solid #064e3b}
-  .btn-red{background:#7f1d1d;color:#fee2e2;border:1px solid #7f1d1d}
-  .chip{border:1px solid var(--border);padding:.15rem .5rem;border-radius:999px;font-size:.75rem;color:var(--muted)}
-  .tab{padding:.65rem 1rem;border:1px solid var(--border);border-radius:.75rem;background:#0b1326}
-  .tab.active{background:#111827;border-color:#111827}
-  .field{display:flex;flex-direction:column;gap:.25rem}
-  input,select{background:#0b1326;border:1px solid var(--border);color:#e5e7eb;border-radius:.7rem;height:2.5rem;padding:.5rem .75rem}
-  table th{color:#94a3b8;font-weight:600}
-  .err{color:#fca5a5}
-  details > summary {cursor:pointer}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Controle Financeiro IRV</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- Firebase compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-  /* Tema claro */
-  body.theme-light{background:linear-gradient(135deg,#f8fafc 0%,#ffffff 70%); color:#0f172a;}
-  body.theme-light .card{background:#ffffff; border-color:#e5e7eb; box-shadow:0 12px 28px rgba(2,6,23,.08)}
-  body.theme-light .btn-min{color:#334155; border-color:#e5e7eb; background:#ffffff}
-  body.theme-light .tab{background:#ffffff; border-color:#e5e7eb; color:#0f172a}
-  body.theme-light .tab.active{background:#0f172a; border-color:#0f172a; color:#fff}
-  body.theme-light input, body.theme-light select{background:#ffffff; color:#0f172a; border-color:#e5e7eb}
-  body.theme-light table th{color:#475569}
-  body.theme-light .chip{color:#475569; border-color:#e5e7eb}
+  <style>
+    :root { --bg:#0b1220; --card:#0f172a; --muted:#94a3b8; --text:#e5e7eb; --border:#1f2937; --accent:#111827; }
+    body{background:linear-gradient(135deg,#0f172a 0%,#0b1220 70%); color:var(--text); font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; margin:0}
+    .card{background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,.25)}
+    .btn{padding:.6rem .9rem;border-radius:.9rem;font-weight:600;cursor:pointer}
+    .btn-min{background:transparent;color:var(--text);border:1px solid var(--border)}
+    .btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent)}
+    .btn-green{background:#065f46;color:#ecfdf5;border:1px solid #064e3b}
+    .btn-red{background:#7f1d1d;color:#fee2e2;border:1px solid #7f1d1d}
+    .tab{padding:.55rem .85rem;border-radius:.6rem;border:1px solid var(--border);background:#0b1326;color:var(--muted)}
+    .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .chip{padding:.15rem .5rem;border-radius:999px;border:1px solid var(--border);color:var(--muted);font-size:.75rem}
+    input,select{background:#0b1326;border:1px solid var(--border);color:var(--text);border-radius:.6rem;height:2.4rem;padding:.4rem .6rem}
+    table th{color:var(--muted);font-weight:700;font-size:.75rem}
+    .td-strong{font-weight:700}
+    tbody tr.soft-row{background:rgba(255,255,255,.03); transition:background .12s}
+    tbody tr.soft-row:hover{background:rgba(255,255,255,.06)}
+    .err{color:#fca5a5}
 
-  /* Linhas suaves + negrito */
-  tbody tr.soft-row{background:rgba(255,255,255,.06); transition:background .15s}
-  tbody tr.soft-row:hover{background:rgba(255,255,255,.1)}
-  body.theme-light tbody tr.soft-row{background:#f8fafc}
-  body.theme-light tbody tr.soft-row:hover{background:#eef2f7}
-  .td-strong{font-weight:700}
-</style>
+    /* Tema claro */
+    body.theme-light{background:linear-gradient(135deg,#f8fafc 0%,#ffffff 70%); color:#0f172a}
+    body.theme-light .card{background:#ffffff;border-color:#e6edf3;box-shadow:0 8px 20px rgba(2,6,23,.06)}
+    body.theme-light input, body.theme-light select{background:#fff;color:#0f172a;border-color:#e6edf3}
+    body.theme-light .tab{background:#fff;color:#0f172a;border-color:#e6edf3}
+    body.theme-light .tab.active{background:#0f172a;color:#fff}
+    body.theme-light .btn-min{color:#334155;border-color:#e6edf3;background:#fff}
+    body.theme-light tbody tr.soft-row{background:#fbfdff}
+    body.theme-light tbody tr.soft-row:hover{background:#eef2f7}
+    body.theme-light .chip{color:#475569;border-color:#e6edf3}
+  </style>
 </head>
 <body class="min-h-screen">
-<!-- LOGIN -->
-<div id="authGate" class="fixed inset-0 z-50 flex items-center justify-center p-5">
-  <div class="absolute inset-0 opacity-[.18] bg-[radial-gradient(circle_at_20%_20%,#22d3ee,transparent_35%),radial-gradient(circle_at_80%_30%,#34d399,transparent_35%),radial-gradient(circle_at_50%_80%,#60a5fa,transparent_40%)]"></div>
-  <div class="relative card w-full max-w-md p-6">
-    <div class="text-center mb-5">
-      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white font-bold">IRV</div>
-      <h1 class="mt-3 text-xl font-semibold">Controle Financeiro IRV</h1>
-      <p class="text-sm" style="color:var(--muted)">Entre com e-mail/senha, Google ou Modo local</p>
-    </div>
-    <div class="flex gap-2 mb-4">
-      <button id="tabLogin"  class="tab active">Entrar</button>
-      <button id="tabSignup" class="tab">Criar conta</button>
-    </div>
-    <form id="authForm" class="grid gap-3">
-      <div class="field"><label class="text-xs" style="color:var(--muted)">E-mail</label><input id="authEmail" type="email" placeholder="email@exemplo.com" required></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Senha</label><input id="authPass" type="password" placeholder="Mínimo 6 caracteres"></div>
-      <div id="signupExtras" class="field hidden"><label class="text-xs" style="color:var(--muted)">Confirmar senha</label><input id="authPass2" type="password" placeholder="Repita a senha"></div>
-      <button id="submitAuth" class="btn btn-primary w-full mt-1" type="submit">Entrar</button>
-      <div class="grid grid-cols-2 gap-2">
-        <button id="btnGoogle" type="button" class="btn btn-min">Google</button>
-        <button id="btnLocal"  type="button" class="btn btn-min">Modo local</button>
+  <!-- AUTH (somente login) -->
+  <div id="authGate" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 opacity-[.14] bg-[radial-gradient(circle_at_20%_20%,#22d3ee,transparent_35%),radial-gradient(circle_at_80%_30%,#34d399,transparent_35%),radial-gradient(circle_at_50%_80%,#60a5fa,transparent_40%)]"></div>
+    <div class="relative card w-full max-w-md p-6">
+      <div class="text-center mb-4">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-black text-white font-bold">IRV</div>
+        <h1 class="mt-3 text-xl font-semibold">Controle Financeiro IRV</h1>
+        <p class="text-sm" style="color:var(--muted)">Cadastro desativado — entre com e-mail e senha criados pelo administrador</p>
       </div>
-      <div id="authMsg" class="err min-h-[1.25rem] text-center"></div>
-      <details class="text-xs" style="color:var(--muted)">
-        <summary>Diagnóstico</summary>
-        <pre id="diagBox" class="mt-1 whitespace-pre-wrap"></pre>
-      </details>
-    </form>
+
+      <form id="authForm" class="grid gap-3">
+        <div>
+          <label class="text-xs" style="color:var(--muted)">E-mail</label>
+          <input id="authEmail" type="email" placeholder="email@exemplo.com" required />
+        </div>
+        <div>
+          <label class="text-xs" style="color:var(--muted)">Senha</label>
+          <input id="authPass" type="password" placeholder="Senha" required />
+        </div>
+
+        <button id="submitAuth" class="btn btn-primary w-full" type="submit">Entrar</button>
+        <div id="authMsg" class="err text-center min-h-[1.2rem]"></div>
+        <details class="text-xs" style="color:var(--muted)"><summary>Diagnóstico</summary><pre id="diagBox" class="mt-1 whitespace-pre-wrap"></pre></details>
+      </form>
+    </div>
   </div>
-</div>
 
-<!-- APP -->
-<div id="appRoot" class="max-w-7xl mx-auto p-4 hidden">
-  <header class="mb-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-black text-white font-bold">IRV</div>
-      <div>
-        <h1 class="text-xl font-semibold">Controle Financeiro IRV</h1>
-        <div class="text-xs" style="color:var(--muted)">Igrejas Alagoinhas e Entre Rios • Valores em BRL</div>
-      </div>
-    </div>
-    <div class="flex items-center gap-2">
-      <span id="userEmail" class="chip">offline</span>
-      <button id="btnTema" class="btn btn-min" title="Alternar tema">Tema</button>
-      <button id="btnBackupExport" class="btn btn-min" title="Baixar backup JSON">Backup</button>
-      <label class="btn btn-min cursor-pointer">
-        Importar
-        <input type="file" id="backupImport" accept="application/json" class="hidden">
-      </label>
-      <button id="btnSair" class="btn btn-min hidden">Sair</button>
-    </div>
-  </header>
-
-  <!-- Dashboards -->
-  <section class="grid md:grid-cols-3 gap-4 mb-4">
-    <div class="card p-3">
-      <div class="text-sm mb-2" style="color:var(--muted)">Entradas x Saídas (mês atual)</div>
-      <div class="h-[140px]"><canvas id="graficoBarras"></canvas></div>
-    </div>
-    <div class="card p-3">
-      <div class="text-sm mb-2" style="color:var(--muted)">Categorias (mês atual)</div>
-      <div class="h-[140px]"><canvas id="graficoPizza"></canvas></div>
-    </div>
-    <div class="card p-3">
-      <div class="text-sm mb-2" style="color:var(--muted)">Saldo (mês atual)</div>
-      <div class="h-[140px] flex items-center justify-center">
-        <div class="text-center">
-          <div class="text-3xl font-bold" id="saldoAtual">R$ 0,00</div>
-          <div class="text-xs" id="resumoMini" style="color:var(--muted)">E: 0 • S: 0</div>
+  <!-- APP -->
+  <div id="appRoot" class="max-w-7xl mx-auto p-4 hidden">
+    <header class="mb-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-black text-white font-bold">IRV</div>
+        <div>
+          <h1 class="text-xl font-semibold">Controle Financeiro IRV</h1>
+          <div class="text-xs" style="color:var(--muted)">Igrejas: Alagoinhas & Entre Rios • Valores em BRL</div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- Fechamento + PDF -->
-  <section class="grid md:grid-cols-2 gap-4 mb-4">
-    <div class="card p-3">
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="font-medium">Fechamento mensal</h3>
-        <span id="statusFech" class="chip">Mês atual: aberto</span>
+      <div class="flex items-center gap-2">
+        <span id="userEmail" class="chip">…</span>
+        <button id="btnTema" class="btn btn-min" title="Alternar tema">Tema</button>
+        <button id="btnBackupExport" class="btn btn-min" title="Baixar backup JSON">Backup</button>
+        <label class="btn btn-min cursor-pointer">Importar<input type="file" id="backupImport" accept="application/json" class="hidden"></label>
+        <button id="btnSair" class="btn btn-min">Sair</button>
       </div>
-      <div class="grid sm:grid-cols-2 gap-2">
-        <div class="field"><label class="text-xs" style="color:var(--muted)">Competência</label><input type="month" id="competencia"></div>
-        <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="competenciaIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
-      </div>
-      <div class="mt-3 flex gap-2">
-        <button id="btnFechar" class="btn btn-primary">Fechar mês</button>
-        <button id="btnReabrir" class="btn btn-min">Reabrir</button>
-      </div>
-      <p class="text-xs mt-2" style="color:var(--muted)">Bloqueia lançamentos em meses anteriores. Para lançar no mês seguinte, feche o mês atual.</p>
-    </div>
+    </header>
 
-    <div class="card p-3">
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="font-medium">Livro Caixa (PDF)</h3>
-        <button id="btnPdf" class="btn btn-min">Exportar PDF</button>
+    <!-- Dashboards -->
+    <section class="grid md:grid-cols-3 gap-4 mb-4">
+      <div class="card p-3">
+        <div class="text-sm mb-2" style="color:var(--muted)">Entradas x Saídas (mês atual)</div>
+        <div class="h-[140px]"><canvas id="graficoBarras"></canvas></div>
       </div>
-      <div class="grid sm:grid-cols-3 gap-2">
-        <div class="field"><label class="text-xs" style="color:var(--muted)">Início</label><input type="date" id="pdfInicio"></div>
-        <div class="field"><label class="text-xs" style="color:var(--muted)">Fim</label><input type="date" id="pdfFim"></div>
-        <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="pdfIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+      <div class="card p-3">
+        <div class="text-sm mb-2" style="color:var(--muted)">Categorias (mês atual)</div>
+        <div class="h-[140px]"><canvas id="graficoPizza"></canvas></div>
       </div>
-      <div class="text-xs mt-2" style="color:var(--muted)">O PDF inclui resumo: <em>Saldo anterior, Entradas, Saídas e Saldo atual</em> (lado direito).</div>
-    </div>
-  </section>
+      <div class="card p-3">
+        <div class="text-sm mb-2" style="color:var(--muted)">Saldo (mês atual)</div>
+        <div class="h-[140px] flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-3xl font-bold" id="saldoAtual">R$ 0,00</div>
+            <div class="text-xs" id="resumoMini" style="color:var(--muted)">E: R$ 0,00 • S: R$ 0,00</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <!-- Form com menus -->
-  <section class="card p-3 mb-4">
-    <div class="flex gap-2 mb-3">
-      <button id="tabEntrada" class="tab active" type="button">Entrada</button>
-      <button id="tabSaida" class="tab" type="button">Saída</button>
-      <span class="ml-auto text-xs" style="color:var(--muted)">Crie novas categorias com <span class="chip">+ Categoria</span></span>
-    </div>
-    <form id="form" class="grid md:grid-cols-8 gap-3 items-end">
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="igreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Data</label><input type="date" id="data" required></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
-      <div class="field md:col-span-2">
-        <label class="text-xs" style="color:var(--muted)">Categoria</label>
-        <div class="flex gap-2"><select id="categoria" class="flex-1"></select><button type="button" id="btnAddCategoria" class="btn btn-min">+ Categoria</button></div>
+    <!-- Fechamento + PDF -->
+    <section class="grid md:grid-cols-2 gap-4 mb-4">
+      <div class="card p-3">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-medium">Fechamento mensal</h3>
+          <span id="statusFech" class="chip">Mês atual: aberto</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-2">
+          <div><label class="text-xs" style="color:var(--muted)">Competência</label><input type="month" id="competencia"></div>
+          <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="competenciaIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+        </div>
+        <div class="mt-3 flex gap-2"><button id="btnFechar" class="btn btn-primary">Fechar mês</button><button id="btnReabrir" class="btn btn-min">Reabrir</button></div>
+        <p class="text-xs mt-2" style="color:var(--muted)">Bloqueia lançamentos em meses anteriores. Para lançar no mês seguinte, feche o mês atual.</p>
       </div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Forma</label><select id="forma"><option>Dinheiro</option><option>Pix</option></select></div>
-      <div class="field md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="descricao" placeholder="Opcional"></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="valor" step="0.01" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
-      <div class="md:col-span-8 flex gap-2"><button class="btn btn-primary" type="submit">Adicionar</button><button class="btn btn-min" type="button" id="limparForm">Limpar</button></div>
-    </form>
-  </section>
 
-  <!-- Filtros -->
-  <section class="card p-3 mb-3">
-    <div class="grid md:grid-cols-5 gap-2">
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="fIgreja"><option value="">Todas</option><option>Alagoinhas</option><option>Entre Rios</option></select></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="fTipo"><option value="">Todos</option><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Categoria</label><input id="fCategoria" placeholder="Ex.: Dízimo"></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Pesquisa</label><input id="fBusca" placeholder="Descrição…"></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Período</label><div class="flex gap-2"><input type="month" id="fMes" class="flex-1"><button id="btnLimparFiltros" class="btn btn-min" type="button">Limpar</button></div></div>
-    </div>
-  </section>
-
-  <!-- Lista -->
-  <section class="card p-3">
-    <h2 class="font-medium mb-2">Transações</h2>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left">
-        <thead>
-          <tr class="text-xs uppercase tracking-wide border-b" style="color:var(--muted);border-color:var(--border)">
-            <th class="p-2">Data</th><th class="p-2">Igreja</th><th class="p-2">Tipo</th>
-            <th class="p-2">Categoria</th><th class="p-2">Forma</th><th class="p-2">Descrição</th><th class="p-2">Valor</th><th class="p-2 text-right">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="lista" class="text-sm"></tbody>
-      </table>
-    </div>
-  </section>
-</div>
-
-<!-- Edit Modal -->
-<div id="editOverlay" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[60]">
-  <div class="card w-full max-w-2xl p-4">
-    <div class="flex items-center justify-between mb-2">
-      <h3 class="text-lg font-semibold">Editar transação</h3>
-      <button id="editClose" class="btn btn-min">Fechar</button>
-    </div>
-    <form id="editForm" class="grid md:grid-cols-8 gap-3 items-end">
-      <input type="hidden" id="editId">
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="editIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Data</label><input type="date" id="editData" required></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="editTipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
-      <div class="field md:col-span-2">
-        <label class="text-xs" style="color:var(--muted)">Categoria</label>
-        <div class="flex gap-2"><select id="editCategoria" class="flex-1"></select><button type="button" id="editAddCategoria" class="btn btn-min">+ Categoria</button></div>
+      <div class="card p-3">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-medium">Livro Caixa (PDF)</h3>
+          <button id="btnPdf" class="btn btn-min">Exportar PDF</button>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-2">
+          <div><label class="text-xs" style="color:var(--muted)">Início</label><input type="date" id="pdfInicio"></div>
+          <div><label class="text-xs" style="color:var(--muted)">Fim</label><input type="date" id="pdfFim"></div>
+          <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="pdfIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+        </div>
+        <div class="text-xs mt-2" style="color:var(--muted)">O PDF inclui resumo: <em>Saldo anterior, Entradas, Saídas e Saldo atual</em> (lado direito).</div>
       </div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Forma</label><select id="editForma"><option>Dinheiro</option><option>Pix</option></select></div>
-      <div class="field md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="editDescricao" placeholder="Opcional"></div>
-      <div class="field"><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="editValor" step="0.01" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
-      <div class="md:col-span-8 flex gap-2">
-        <button class="btn btn-primary" type="submit">Salvar alterações</button>
-        <button id="editCancel" class="btn btn-min" type="button">Cancelar</button>
+    </section>
+
+    <!-- Form -->
+    <section class="card p-3 mb-4">
+      <div class="flex gap-2 mb-3">
+        <button id="tabEntrada" class="tab active" type="button">Entrada</button>
+        <button id="tabSaida" class="tab" type="button">Saída</button>
+        <span class="ml-auto text-xs" style="color:var(--muted)">Crie novas categorias com <span class="chip">+ Categoria</span></span>
       </div>
-    </form>
+
+      <form id="form" class="grid md:grid-cols-8 gap-3 items-end">
+        <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="igreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+        <div><label class="text-xs" style="color:var(--muted)">Data</label><input type="date" id="data" required></div>
+        <div><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="tipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
+
+        <div class="md:col-span-2">
+          <label class="text-xs" style="color:var(--muted)">Categoria</label>
+          <div class="flex gap-2">
+            <select id="categoria" class="flex-1"></select>
+            <button type="button" id="btnAddCategoria" class="btn btn-min">+ Categoria</button>
+          </div>
+        </div>
+
+        <div><label class="text-xs" style="color:var(--muted)">Forma</label><select id="forma"><option>Dinheiro</option><option>Pix</option></select></div>
+        <div class="md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="descricao" placeholder="Opcional"></div>
+        <div><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="valor" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
+
+        <div class="md:col-span-8 flex gap-2">
+          <button class="btn btn-primary" type="submit">Adicionar</button>
+          <button class="btn btn-min" type="button" id="limparForm">Limpar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Filtros -->
+    <section class="card p-3 mb-3">
+      <div class="grid md:grid-cols-5 gap-2">
+        <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="fIgreja"><option value="">Todas</option><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+        <div><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="fTipo"><option value="">Todos</option><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
+        <div><label class="text-xs" style="color:var(--muted)">Categoria</label><input id="fCategoria" placeholder="Ex.: Dízimo"></div>
+        <div><label class="text-xs" style="color:var(--muted)">Pesquisa</label><input id="fBusca" placeholder="Descrição…"></div>
+        <div><label class="text-xs" style="color:var(--muted)">Período</label><div class="flex gap-2"><input type="month" id="fMes" class="flex-1"><button id="btnLimparFiltros" class="btn btn-min" type="button">Limpar</button></div></div>
+      </div>
+    </section>
+
+    <!-- Lista -->
+    <section class="card p-3">
+      <h2 class="font-medium mb-2">Transações</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="text-xs uppercase tracking-wide border-b" style="color:var(--muted);border-color:var(--border)">
+              <th class="p-2">Data</th><th class="p-2">Igreja</th><th class="p-2">Tipo</th>
+              <th class="p-2">Categoria</th><th class="p-2">Forma</th><th class="p-2">Descrição</th><th class="p-2">Valor</th><th class="p-2 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="lista" class="text-sm"></tbody>
+        </table>
+      </div>
+    </section>
   </div>
-</div>
+
+  <!-- Edit Modal -->
+  <div id="editOverlay" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[60]">
+    <div class="card w-full max-w-2xl p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-lg font-semibold">Editar transação</h3>
+        <button id="editClose" class="btn btn-min">Fechar</button>
+      </div>
+      <form id="editForm" class="grid md:grid-cols-8 gap-3 items-end">
+        <input type="hidden" id="editId">
+        <div><label class="text-xs" style="color:var(--muted)">Igreja</label><select id="editIgreja"><option>Alagoinhas</option><option>Entre Rios</option></select></div>
+        <div><label class="text-xs" style="color:var(--muted)">Data</label><input type="date" id="editData" required></div>
+        <div><label class="text-xs" style="color:var(--muted)">Tipo</label><select id="editTipo"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
+
+        <div class="md:col-span-2">
+          <label class="text-xs" style="color:var(--muted)">Categoria</label>
+          <div class="flex gap-2"><select id="editCategoria" class="flex-1"></select><button type="button" id="editAddCategoria" class="btn btn-min">+ Categoria</button></div>
+        </div>
+
+        <div><label class="text-xs" style="color:var(--muted)">Forma</label><select id="editForma"><option>Dinheiro</option><option>Pix</option></select></div>
+        <div class="md:col-span-2"><label class="text-xs" style="color:var(--muted)">Descrição</label><input type="text" id="editDescricao" placeholder="Opcional"></div>
+        <div><label class="text-xs" style="color:var(--muted)">Valor</label><input type="text" id="editValor" required placeholder="Ex.: 1.234,56" inputmode="decimal" pattern="[0-9.,]+"></div>
+
+        <div class="md:col-span-8 flex gap-2"><button class="btn btn-primary" type="submit">Salvar alterações</button><button id="editCancel" class="btn btn-min" type="button">Cancelar</button></div>
+      </form>
+    </div>
+  </div>
 
 <script>
-// ===== Firebase config (mantida) =====
+/* ===== Firebase (sua config) ===== */
 const cfg = {
   apiKey: "AIzaSyBanW9qGTl2st7HdM-kkg-WClgY0gEE7co",
   authDomain: "controle-fin-23a33.firebaseapp.com",
@@ -246,115 +241,120 @@ const cfg = {
   measurementId: "G-CHB6CVWZ7E"
 };
 
-// ===== Tema
+/* ===== Tema ===== */
 const THEME_KEY='irv_theme';
-function applyTheme(t){ const b=document.body; if(t==='light'){ b.classList.add('theme-light'); } else { b.classList.remove('theme-light'); } try{ localStorage.setItem(THEME_KEY,t); }catch(_){}};
+function applyTheme(t){ const b=document.body; if(t==='light'){ b.classList.add('theme-light'); } else { b.classList.remove('theme-light'); } try{ localStorage.setItem(THEME_KEY,t); }catch(_){} }
 function initTheme(){ try{ const saved=localStorage.getItem(THEME_KEY); if(saved){ applyTheme(saved); } }catch(_){} }
 function toggleTheme(){ const isLight=document.body.classList.contains('theme-light'); applyTheme(isLight?'dark':'light'); }
 
-// ===== Helpers
+/* ===== Helpers ===== */
 const $ = (id)=>document.getElementById(id);
-const fmtBRL = (n)=> 'R$ '+Number(n||0).toFixed(2).replace('.',',');
+const fmtBRL = (n)=> {
+  if(!isFinite(n)) return 'R$ 0,00';
+  return 'R$ '+Number(n||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
 const toBR = (d)=>{ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; };
 const ym = (d)=> d ? d.slice(0,7) : '';
 
-// Normaliza valores (aceita 1.234,56 | 1,234.56 | 1234,56 | 1234.56 | "R$ 1.234,56")
+/* Parser robusto (ponto/vírgula, com/sem R$) */
 function parseValorBR(v){
   if(v==null) return NaN;
   let s = String(v).trim();
-  // remove tudo que não for dígito, vírgula, ponto ou sinal
   s = s.replace(/[^\d,.-]/g,'');
-  // se houver mais de uma vírgula, mantém só a última como decimal
-  s = s.replace(/\.(?=\d{3}(\D|$))/g, ''); // remove pontos de milhar comuns
-  s = s.replace(/,(?=.*,)/g,'');             // remove todas as vírgulas exceto a última
-  // troca vírgula decimal por ponto
-  s = s.replace(',', '.');
-  // trata casos de apenas dígitos: "123" -> 123
+  if(s.indexOf(',') >= 0){
+    s = s.replace(/\./g,'');
+    s = s.replace(/,/g,'.');
+  } else {
+    const parts = s.split('.');
+    if(parts.length>2){
+      const last = parts.pop();
+      s = parts.join('') + '.' + last;
+    }
+  }
   return parseFloat(s);
 }
 
-
-// Máscara de moeda pt-BR ao digitar
+/* Máscara de moeda pt-BR */
 function maskCurrencyInput(el){
   if(!el) return;
-  const format = (raw) => {
-    if(raw==='' || raw==null) return '';
-    const n = Number(raw)/100;
-    return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  };
-  const handle = ()=>{
-    // mantém somente dígitos e formata como centavos
-    let s = (el.value||'').toString().replace(/\D+/g,'');
-    if(s===''){ el.value=''; return; }
-    el.value = format(s);
-  };
-  el.addEventListener('input', handle);
-  el.addEventListener('blur', ()=>{
-    const n = parseValorBR(el.value);
-    if(!isNaN(n)) el.value = n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  });
+  const fmt = (rawCents)=> (Number(rawCents||0)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const onInput = ()=>{ let digits=(el.value||'').replace(/\D+/g,''); el.value = digits ? fmt(digits) : ''; };
+  el.addEventListener('input', onInput);
+  el.addEventListener('paste', (e)=>{ e.preventDefault(); const t=(e.clipboardData||window.clipboardData).getData('text'); const n=parseValorBR(t); if(!isNaN(n)) el.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); });
+  el.addEventListener('blur', ()=>{ const n=parseValorBR(el.value); if(!isNaN(n)) el.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); });
 }
 
-// ===== Estado
-let auth=null, db=null, currentUser=null, unsubTx=null, localMode=false;
+/* ===== Estado ===== */
+let auth=null, db=null, currentUser=null, unsubTx=null;
 let transacoes=[];
 let cats = { entrada:['Dízimo','Oferta','Doação'], saida:['Água','Luz','Som','Material'] };
 let fechados = {}; // { 'YYYY-MM|Igreja': true }
 
-// ===== Login UI
+/* ===== Auth ===== */
 const gate = $('authGate'), app = $('appRoot'), msg=$('authMsg'), diag=$('diagBox');
-const tabLogin=$('tabLogin'), tabSignup=$('tabSignup'), submitAuth=$('submitAuth'), signupExtras=$('signupExtras');
-let mode='login';
-function setMode(m){ mode=m; if(m==='login'){ tabLogin.classList.add('active'); tabSignup.classList.remove('active'); signupExtras.classList.add('hidden'); submitAuth.textContent='Entrar'; } else { tabSignup.classList.add('active'); tabLogin.classList.remove('active'); signupExtras.classList.remove('hidden'); submitAuth.textContent='Criar conta'; } if(msg) msg.textContent=''; }
-tabLogin.onclick=()=>setMode('login'); tabSignup.onclick=()=>setMode('signup');
 
-// ===== Inicialização Firebase
+/* ===== Firebase init ===== */
 function initFirebase(){
   try{
     firebase.initializeApp(cfg);
     auth = firebase.auth();
     db   = firebase.firestore();
     try{ db.enablePersistence({synchronizeTabs:true}); }catch(_){}
-    if(diag) diag.textContent = ['Firebase init: OK','projectId: '+cfg.projectId,'authDomain: '+cfg.authDomain].join('\\n');
+    if(diag) diag.textContent = ['Firebase init: OK','projectId: '+cfg.projectId,'authDomain: '+cfg.authDomain].join('\n');
+
     auth.onAuthStateChanged(async user=>{
-      if(user){ localMode=false; currentUser=user; $('userEmail').textContent=user.email||''; $('btnSair').classList.remove('hidden'); openApp(); await loadUserData(); }
-      else { currentUser=null; $('btnSair').classList.add('hidden'); closeApp(); }
+      if(user){
+        currentUser=user;
+        $('userEmail').textContent=user.email||'';
+        openApp();
+        await loadUserData();
+      } else {
+        closeApp();
+      }
     });
+
     $('authForm').onsubmit = async (e)=>{
       e.preventDefault();
       const email=$('authEmail').value.trim(), pass=$('authPass').value;
       try{
-        if(mode==='login'){ await auth.signInWithEmailAndPassword(email, pass); }
-        else { const p2=$('authPass2').value.trim(); if(pass.length<6) return msg.textContent='Senha fraca (mín. 6).'; if(pass!==p2) return msg.textContent='As senhas não conferem.'; await auth.createUserWithEmailAndPassword(email, pass); }
-      }catch(err){ const map={"auth/operation-not-allowed":"Ative Email/Password no Firebase.","auth/invalid-email":"E-mail inválido.","auth/email-already-in-use":"E-mail já cadastrado.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Usuário não encontrado.","auth/api-key-not-valid":"API key inválida para Web."}; msg.textContent = map[err.code] || (err.message||'Erro'); }
+        await auth.signInWithEmailAndPassword(email, pass);
+      }catch(err){
+        const map={"auth/operation-not-allowed":"Email/Password desativado no Firebase.","auth/invalid-email":"E-mail inválido.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Usuário não encontrado."};
+        msg.textContent = map[err.code] || (err.message||'Erro');
+      }
     };
-    $('btnGoogle').onclick = async ()=>{ const provider=new firebase.auth.GoogleAuthProvider(); try{ await auth.signInWithPopup(provider); }catch(e){ try{ await auth.signInWithRedirect(provider);}catch(e2){ msg.textContent=e2.message||'Falha no Google.'; } } };
-    $('btnLocal').onclick = ()=>{ localMode=true; $('userEmail').textContent='Modo local'; openApp(); loadLocal(); };
+
     $('btnSair').onclick = ()=> auth.signOut();
-    const bt=document.getElementById('btnTema'); if(bt) bt.onclick=toggleTheme;
+    $('btnTema').onclick = toggleTheme;
+
     return true;
-  }catch(e){ if(msg) msg.textContent='Falha ao inicializar Firebase.'; if(diag) diag.textContent='Erro: '+(e.message||e); return false; }
+  }catch(e){
+    if(msg) msg.textContent='Falha ao inicializar Firebase.';
+    if(diag) diag.textContent='Erro: '+(e.message||e);
+    return false;
+  }
 }
 
 function openApp(){ gate.classList.add('hidden'); app.classList.remove('hidden'); renderCategorias(); bindTransacoes(); }
 function closeApp(){ app.classList.add('hidden'); gate.classList.remove('hidden'); if(unsubTx){unsubTx();unsubTx=null;} transacoes=[]; }
 
-// ===== Dados do usuário (categorias + fechamentos)
+/* ===== Dados do usuário ===== */
 async function loadUserData(){
-  try{ const doc = await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').get();
+  try{
+    const doc = await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').get();
     if(doc.exists){ const data=doc.data(); if(data.entrada) cats.entrada=data.entrada; if(data.saida) cats.saida=data.saida; }
   }catch(_){}
-  try{ const snap = await db.collection('irv_users').doc(currentUser.uid).collection('closures').get();
+  try{
+    const snap = await db.collection('irv_users').doc(currentUser.uid).collection('closures').get();
     fechados={}; snap.forEach(d=> fechados[d.id]=!!d.data().closed);
   }catch(_){}
-  renderCategorias();
-  // aplica máscara nos campos de valor
-  maskCurrencyInput(document.getElementById('valor')); updateFechStatus();
+  renderCategorias(); updateFechStatus();
 }
 
-// ===== Categorias UI
+/* ===== Categorias ===== */
 function renderCategorias(){
-  const tipo = $('tipo').value; const el=$('categoria'); el.innerHTML='';
+  const tipo = $('tipo').value;
+  const el=$('categoria'); el.innerHTML='';
   (cats[tipo]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); });
 }
 $('tipo').addEventListener('change', ()=>{
@@ -362,27 +362,20 @@ $('tipo').addEventListener('change', ()=>{
   document.getElementById('tabEntrada').classList.toggle('active', $('tipo').value==='entrada');
   document.getElementById('tabSaida').classList.toggle('active', $('tipo').value==='saida');
 });
-
 document.getElementById('tabEntrada').addEventListener('click', ()=>{ $('tipo').value='entrada'; document.getElementById('tabEntrada').classList.add('active'); document.getElementById('tabSaida').classList.remove('active'); renderCategorias(); });
 document.getElementById('tabSaida').addEventListener('click', ()=>{ $('tipo').value='saida'; document.getElementById('tabSaida').classList.add('active'); document.getElementById('tabEntrada').classList.remove('active'); renderCategorias(); });
 
 $('btnAddCategoria').onclick = async ()=>{
-  const tipo=$('tipo').value;
-  const nome = prompt('Nova categoria de '+(tipo==='entrada'?'Entrada':'Saída')+':');
+  const tipo=$('tipo').value; const nome = prompt('Nova categoria de '+(tipo==='entrada'?'Entrada':'Saída')+':');
   if(!nome) return;
   if(!cats[tipo].includes(nome)) cats[tipo].push(nome);
   renderCategorias();
-  if(!localMode && currentUser){
-    await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true});
-  }else{
-    localStorage.setItem('irv_local_cats', JSON.stringify(cats));
-  }
+  await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true});
 };
 
-// ===== Fechamento
+/* ===== Fechamento ===== */
 function isMonthClosed(yyyyMM, igreja){ return !!fechados[`${yyyyMM}|${igreja}`]; }
 function setMonthClosed(yyyyMM, igreja, closed){ fechados[`${yyyyMM}|${igreja}`]=closed; }
-
 function updateFechStatus(){
   const comp=$('competencia').value || new Date().toISOString().slice(0,7);
   const ig=$('competenciaIgreja').value;
@@ -395,22 +388,14 @@ $('btnFechar').onclick = async ()=>{
   const comp=$('competencia').value || new Date().toISOString().slice(0,7);
   const ig=$('competenciaIgreja').value;
   setMonthClosed(comp,ig,true);
-  if(!localMode && currentUser){
-    await db.collection('irv_users').doc(currentUser.uid).collection('closures').doc(`${comp}|${ig}`).set({closed:true,at:firebase.firestore.FieldValue.serverTimestamp()});
-  }else{
-    localStorage.setItem('irv_local_closures', JSON.stringify(fechados));
-  }
+  await db.collection('irv_users').doc(currentUser.uid).collection('closures').doc(`${comp}|${ig}`).set({closed:true,at:firebase.firestore.FieldValue.serverTimestamp()});
   updateFechStatus(); alert('Mês fechado.');
 };
 $('btnReabrir').onclick = async ()=>{
   const comp=$('competencia').value || new Date().toISOString().slice(0,7);
   const ig=$('competenciaIgreja').value;
   setMonthClosed(comp,ig,false);
-  if(!localMode && currentUser){
-    await db.collection('irv_users').doc(currentUser.uid).collection('closures').doc(`${comp}|${ig}`).set({closed:false,at:firebase.firestore.FieldValue.serverTimestamp()});
-  }else{
-    localStorage.setItem('irv_local_closures', JSON.stringify(fechados));
-  }
+  await db.collection('irv_users').doc(currentUser.uid).collection('closures').doc(`${comp}|${ig}`).set({closed:false,at:firebase.firestore.FieldValue.serverTimestamp()});
   updateFechStatus(); alert('Mês reaberto.');
 };
 
@@ -425,11 +410,10 @@ function canAddOn(dateStr, igreja){
   return true;
 }
 
-// ===== Firestore
+/* ===== Firestore ===== */
 function txCol(){ return db.collection('irv_users').doc(currentUser.uid).collection('transactions'); }
 
 function bindTransacoes(){
-  if(localMode || !currentUser){ render(); return; }
   if(unsubTx){ unsubTx(); unsubTx=null; }
   unsubTx = txCol().orderBy('data').onSnapshot(snap=>{
     transacoes=[]; let i=0;
@@ -442,7 +426,7 @@ function bindTransacoes(){
   });
 }
 
-// ===== Salvar
+/* ===== Adicionar ===== */
 document.getElementById('form').addEventListener('submit', async (e)=>{
   e.preventDefault();
   const tx = {
@@ -459,30 +443,20 @@ document.getElementById('form').addEventListener('submit', async (e)=>{
   if(!tx.categoria) return alert('Informe a categoria.');
   if(!(isFinite(tx.valor)&&tx.valor>0)) return alert('Informe um valor válido (>0).');
   try{
-    if(localMode || !currentUser){
-      transacoes.push({...tx, id:'local-'+Date.now()});
-      localStorage.setItem('irv_local_tx', JSON.stringify(transacoes));
-      render();
-    }else{
-      await txCol().add({...tx, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
-    }
+    await txCol().add({...tx, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
     e.target.reset();
   }catch(err){ alert('Falha ao salvar: '+(err.message||err)); }
 });
 $('limparForm').onclick = ()=> $('form').reset();
 
-// ===== Filtros
+/* ===== Filtros ===== */
 ['fIgreja','fTipo','fCategoria','fBusca','fMes'].forEach(id=> $(id).addEventListener('input', render));
 $('btnLimparFiltros').onclick = ()=>{ ['fIgreja','fTipo','fCategoria','fBusca','fMes'].forEach(id=> $(id).value=''); render(); };
 
-// ===== Render
+/* ===== Render ===== */
 function render(){
   const tb=$('lista'); tb.innerHTML='';
-  if(localMode){
-    try{ const lc=localStorage.getItem('irv_local_cats'); if(lc) cats=JSON.parse(lc); }catch(_){}
-    try{ const lc2=localStorage.getItem('irv_local_closures'); if(lc2) fechados=JSON.parse(lc2); }catch(_){}
-    try{ transacoes = JSON.parse(localStorage.getItem('irv_local_tx'))||transacoes; }catch(_){}
-  }
+
   const fi=$('fIgreja').value, ft=$('fTipo').value, fc=($('fCategoria').value||'').toLowerCase(), fb=($('fBusca').value||'').toLowerCase(), fm=$('fMes').value;
   const rows = transacoes.filter(t=> (!fi || t.igreja===fi) && (!ft || t.tipo===ft) && (!fc || (t.categoria||'').toLowerCase().includes(fc)) && (!fb || (t.descricao||'').toLowerCase().includes(fb)) && (!fm || ym(t.data)===fm));
 
@@ -513,15 +487,7 @@ function render(){
       const t = rows[idx]; if(!t) return;
       if(act==='del'){
         if(!confirm('Excluir esta transação?')) return;
-        try{
-          if(localMode || !currentUser){
-            const i = transacoes.findIndex(x=> x.id===t.id);
-            if(i>=0){ transacoes.splice(i,1); localStorage.setItem('irv_local_tx', JSON.stringify(transacoes)); }
-            render();
-          }else{
-            await txCol().doc(id).delete();
-          }
-        }catch(err){ alert('Falha ao excluir: '+(err.message||err)); }
+        try{ await txCol().doc(id).delete(); }catch(err){ alert('Falha ao excluir: '+(err.message||err)); }
       }else if(act==='edit'){
         showEdit(t);
       }
@@ -540,6 +506,7 @@ function render(){
   updateFechStatus();
 }
 
+/* Charts */
 let g1,g2;
 function drawCharts(e,s,rows){
   try{ g1&&g1.destroy(); }catch(_){}
@@ -549,10 +516,14 @@ function drawCharts(e,s,rows){
   g2=new Chart(document.getElementById('graficoPizza'),{type:'doughnut',data:{labels:Object.keys(cat),datasets:[{data:Object.values(cat)}]},options:{responsive:true,maintainAspectRatio:false}});
 }
 
-// ===== Edit Modal Logic
+/* ===== Edit Modal ===== */
 const editOverlay = document.getElementById('editOverlay');
 const editForm = document.getElementById('editForm');
 
+function renderEditCategorias(){
+  const t=document.getElementById('editTipo').value; const el=document.getElementById('editCategoria'); el.innerHTML='';
+  (cats[t]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); });
+}
 function showEdit(tx){
   document.getElementById('editId').value = tx.id || '';
   document.getElementById('editIgreja').value = tx.igreja || 'Alagoinhas';
@@ -567,7 +538,6 @@ function showEdit(tx){
   editOverlay.classList.remove('hidden'); editOverlay.classList.add('flex');
 }
 function hideEdit(){ editOverlay.classList.add('hidden'); editOverlay.classList.remove('flex'); }
-function renderEditCategorias(){ const t=document.getElementById('editTipo').value; const el=document.getElementById('editCategoria'); el.innerHTML=''; (cats[t]||[]).forEach(c=>{ const o=document.createElement('option'); o.textContent=c; el.appendChild(o); }); }
 document.getElementById('editTipo').addEventListener('change', ()=>{ renderEditCategorias(); });
 document.getElementById('editAddCategoria').onclick = async () => {
   const t = document.getElementById('editTipo').value;
@@ -575,11 +545,11 @@ document.getElementById('editAddCategoria').onclick = async () => {
   if(!nome) return;
   if(!cats[t].includes(nome)) cats[t].push(nome);
   renderEditCategorias(); document.getElementById('editCategoria').value = nome;
-  if(!localMode && currentUser){ await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true}); }
-  else{ localStorage.setItem('irv_local_cats', JSON.stringify(cats)); }
+  await db.collection('irv_users').doc(currentUser.uid).collection('meta').doc('categories').set({entrada:cats.entrada,saida:cats.saida},{merge:true});
 };
 document.getElementById('editClose').onclick = hideEdit;
 document.getElementById('editCancel').onclick = hideEdit;
+
 editForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
   const id = document.getElementById('editId').value;
@@ -597,20 +567,13 @@ editForm.addEventListener('submit', async (e)=>{
   if(!txUpd.categoria) return alert('Informe a categoria.');
   if(!(isFinite(txUpd.valor)&&txUpd.valor>0)) return alert('Informe um valor válido (>0).');
   try{
-    if(localMode || !currentUser){
-      const i = transacoes.findIndex(x=> (x.id||'')===id);
-      if(i>=0){ transacoes[i] = { ...transacoes[i], ...txUpd }; localStorage.setItem('irv_local_tx', JSON.stringify(transacoes)); }
-      hideEdit(); render();
-    }else{
-      if(!id) return alert('ID inválido desta transação.');
-      await txCol().doc(id).set(txUpd, {merge:true});
-      hideEdit();
-    }
+    await txCol().doc(id).set(txUpd, {merge:true});
+    hideEdit();
   }catch(err){ alert('Falha ao salvar edição: '+(err.message||err)); }
 });
 
-// ==== Livro Caixa PDF (resumo à direita)
-document.getElementById('btnPdf').onclick = ()=>{
+/* ===== Livro Caixa PDF ===== */
+$('btnPdf').onclick = ()=>{
   const { jsPDF } = window.jspdf;
   const inicio=$('pdfInicio').value, fim=$('pdfFim').value, ig=$('pdfIgreja').value;
   const rows = transacoes
@@ -628,85 +591,60 @@ document.getElementById('btnPdf').onclick = ()=>{
   const doc = new jsPDF({unit:'pt'});
   doc.setFontSize(14); doc.text('Livro Caixa - Controle Financeiro IRV', 40, 40);
   doc.setFontSize(10); doc.text(`Período: ${inicio||'-'} a ${fim||'-'} • Igreja: ${ig||'Todas'}`, 40, 58);
-
   doc.autoTable({ startY: 70, head: [['Data','Igreja','Tipo','Categoria','Forma','Descrição','Valor']], body: table, styles:{fontSize:9}, headStyles:{fillColor:[17,24,39]} });
 
   let y = doc.lastAutoTable.finalY + 18;
   const pageW = doc.internal.pageSize.getWidth();
   const rightX = pageW - 220;
-  doc.setFontSize(12); doc.text('Resumo', rightX, y); y+=10; doc.setFontSize(10);
+  doc.setFontSize(12); doc.text('Resumo', rightX, y); y+=12; doc.setFontSize(10);
   doc.text(`Saldo anterior: ${fmtBRL(saldoAnterior)}`, rightX, y); y+=14;
   doc.text(`Entradas: ${fmtBRL(entradas)}`, rightX, y); y+=14;
   doc.text(`Saídas: ${fmtBRL(saidas)}`, rightX, y); y+=14;
   doc.text(`Saldo atual: ${fmtBRL(saldoAtual)}`, rightX, y);
-
   doc.save('Livro_Caixa.pdf');
 };
 
-// ==== Backup JSON (export/import)
-document.getElementById('btnBackupExport').onclick = ()=>{
+/* ===== Backup JSON (Firestore) ===== */
+$('btnBackupExport').onclick = ()=>{
   const data = { categories: cats, closures: fechados, transactions: transacoes };
   const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'backup_irv.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup_irv.json'; a.click(); URL.revokeObjectURL(a.href);
 };
-
-document.getElementById('backupImport').addEventListener('change', async (ev)=>{
+$('backupImport').addEventListener('change', async (ev)=>{
   const file = ev.target.files[0]; if(!file) return;
   try{
     const txt = await file.text();
     const data = JSON.parse(txt);
-    if(localMode || !currentUser){
-      if(data.categories) cats = data.categories;
-      if(data.closures) fechados = data.closures;
-      if(data.transactions) transacoes = data.transactions;
-      localStorage.setItem('irv_local_cats', JSON.stringify(cats));
-      localStorage.setItem('irv_local_closures', JSON.stringify(fechados));
-      localStorage.setItem('irv_local_tx', JSON.stringify(transacoes));
-      render();
-      alert('Backup restaurado no modo local.');
-    }else{
-      const uid=currentUser.uid;
-      const writes=[];
-      if(data.categories){
-        writes.push(db.collection('irv_users').doc(uid).collection('meta').doc('categories').set({entrada:data.categories.entrada||[],saida:data.categories.saida||[]},{merge:true}));
-      }
-      if(data.closures){
-        for(const k of Object.keys(data.closures)){
-          writes.push(db.collection('irv_users').doc(uid).collection('closures').doc(k).set({closed:!!data.closures[k]}));
-        }
-      }
-      if(Array.isArray(data.transactions)){
-        for(const t of data.transactions){
-          const t2 = {...t}; delete t2.id;
-          writes.push(db.collection('irv_users').doc(uid).collection('transactions').add(t2));
-        }
-      }
-      await Promise.all(writes);
-      alert('Backup importado para sua conta.');
+    const uid=currentUser.uid;
+    const writes=[];
+    if(data.categories){
+      writes.push(db.collection('irv_users').doc(uid).collection('meta').doc('categories').set({entrada:data.categories.entrada||[],saida:data.categories.saida||[]},{merge:true}));
     }
-  }catch(err){
-    alert('Falha ao importar: '+(err.message||err));
-  }finally{
-    ev.target.value='';
-  }
+    if(data.closures){
+      for(const k of Object.keys(data.closures)){ writes.push(db.collection('irv_users').doc(uid).collection('closures').doc(k).set({closed:!!data.closures[k]})); }
+    }
+    if(Array.isArray(data.transactions)){
+      for(const t of data.transactions){ const t2 = {...t}; delete t2.id; writes.push(db.collection('irv_users').doc(uid).collection('transactions').add(t2)); }
+    }
+    await Promise.all(writes);
+    alert('Backup importado para sua conta.');
+  }catch(err){ alert('Falha ao importar: '+(err.message||err)); }finally{ ev.target.value=''; }
 });
 
-// Start
+/* ===== Startup ===== */
 (function(){
   initTheme();
   initFirebase();
   const now = new Date().toISOString().slice(0,7);
   $('competencia').value = now;
   $('fMes').value = now;
-  // sincronia inicial abas
+  // abas sincronizadas
   const v = $('tipo').value;
   document.getElementById('tabEntrada').classList.toggle('active', v==='entrada');
   document.getElementById('tabSaida').classList.toggle('active', v==='saida');
   renderCategorias();
+  // máscara de valor
+  maskCurrencyInput(document.getElementById('valor'));
 })();
 </script>
 </body>
